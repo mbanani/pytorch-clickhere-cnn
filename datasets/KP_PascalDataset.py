@@ -1,29 +1,21 @@
 from __future__ import division
 import torch
 import math
-import random
-from PIL import Image, ImageOps
-try:
-    import accimage
-except ImportError:
-    accimage = None
+
 import numpy as np
 import numbers
 import types
 import collections
+import time
+import os
+import pandas
 
-
+import numpy            as np
 import torch.utils.data as data
 
-from PIL import Image
-import os
-import re
-import os.path
-from torchvision import transforms
-import numpy as np
-import time
-import pandas
+from PIL            import Image
 from util           import label_to_probs
+from torchvision    import transforms
 
 class KP_PascalDataset(data.Dataset):
 
@@ -31,7 +23,6 @@ class KP_PascalDataset(data.Dataset):
 
         start_time = time.time()
 
-        # num_classes = len(cls_id)
         self.num_classes = 12
 
         keys_file = open(dataset_root + '/' + datasplit + '/keys.txt')
@@ -40,7 +31,6 @@ class KP_PascalDataset(data.Dataset):
 
         size_dataset = len(keys)
 
-
         if flip:
             self.keys = keys + keys
             self.flip = [False] * size_dataset + [True] * size_dataset
@@ -48,11 +38,11 @@ class KP_PascalDataset(data.Dataset):
             self.keys = keys
             self.flip = [False] * size_dataset
 
+        self.dataset_root = dataset_root + '/' + datasplit
+        self.loader     = self.pil_loader
 
         print "csv file length: ", size_dataset
 
-        self.dataset_root = dataset_root + '/' + datasplit
-        self.loader     = self.pil_loader
         # Normalization as instructed from pyTorch documentation
         self.transform = transforms.Compose([
                                 transforms.ToTensor(),
