@@ -2,9 +2,9 @@
 
 ## To Do
 
-[] Upload converted weights
-[] Test inference
-[] Test training
++ [] Upload converted weights
++ [] Test inference
++ [] Test training
 
 ## Introduction
 
@@ -12,7 +12,9 @@ This is a [PyTorch](http://pytorch.org) implementation of [Clickhere CNN](https:
 
 We currently provide the model, converted weights, dataset classes, and training/evaluation scripts. This implementation also includes an implementation of the Geometric Structure Aware loss function first mentioned in Render For CNN. The dataset classes require the datasets used by Clickhere CNN and RenderForCNN, which makes this implementation suffer from the same storage difficulties reported in [Clickhere CNN](https://github.come/rszeto/click-here-cnn). We are currently revising the dataset generation and storage, and will provide a more storage-efficient implementation soon.
 
-## Using the code
+If you have any questions, please email me at mbanani@umich.edu.
+
+## Running the code 
 
 ### Generating Data
 
@@ -20,14 +22,23 @@ We assume that you already generated the LMDB data (not the actual LMDBs) for bo
 
 ### Pretrained weights
 
-
+Please download the [Clickhere CNN weights](none) and [Render For CNN weights](none), and then set the appropriate paths in util.py.
 
 ### Dependencies
 
 Assuming that you already have the data, you need the following dependencies to run the code:
-* [PyTorch 0.2](http://pytorch.org): Both PyTorch and Torch Vision
-* [PIL](https://pypi.python.org/pypi/Pillow/2.2.1)
+* [PyTorch 0.2](http://pytorch.org) - Both PyTorch and Torch Vision
+* [SciPy](https://www.scipy.org/)
 * [pandas](http://pandas.pydata.org/)
+
+
+### Performing Inference 
+
+After getting the data, downloading the weights, and setting the paths in util.py, you can run inference using Render For CNN and Clickhere CNN on the 3 classes (bus, car, and motorbike) by running the following command
+
+         python train_viewpoint.py --model pretrained_render --dataset pascal --evaluate_only 
+         python train_viewpoint.py --model pretrained_clickhere --dataset pascal --evaluate_only 
+ 
 
 ## Citation
 
