@@ -1,16 +1,16 @@
 import numpy as np
 import os
 import sys
-import scipy
+from scipy import linalg as linAlg
 
 
 ###############################################################################
 ######################### Paths to be set ####################################
 
-render4cnn_weights = None
-clickhere_weights  = None
+render4cnn_weights = '/z/home/mbanani/clickhere/model_weights/render4cnn.pth'
+clickhere_weights  = '/z/home/mbanani/clickhere/model_weights/ch_cnn.npy'
 
-LMDB_data_path     = None
+LMDB_data_path     = '/z/home/mbanani/click-here-cnn/data/lmdb_data'
 
 ###############################################################################
 
@@ -53,7 +53,7 @@ def compute_angle_dists(preds, viewpoint_labels_as_mat):
         predR = angle2dcm(preds[i, 0], preds[i, 1], preds[i, 2])
         gtR = angle2dcm(viewpoint_labels_as_mat[i, 0], viewpoint_labels_as_mat[i, 1], viewpoint_labels_as_mat[i, 2])
         # Get geodesic distance
-        angleDist = scipy.linalg.norm(scipy.linalg.logm(np.dot(predR.T, gtR)), 2) / np.sqrt(2)
+        angleDist = linAlg.norm(linAlg.logm(np.dot(predR.T, gtR)), 2) / np.sqrt(2)
         angle_dists[i] = angleDist
 
     return angle_dists

@@ -12,7 +12,7 @@ from torch.autograd import Variable
 
 from util           import evaluate_performance
 from viewpoint_loss import ViewpointLoss
-from datasets       import KP_PascalDataset
+from datasets       import KP_Dataset
 from models         import render4cnn, clickhere_cnn
 
 
@@ -20,9 +20,7 @@ def main(args):
     initialization_time = time.time()
 
     print "#############  Read in Database   ##############"
-    data_loader, eval_data_loader = get_data_loaders(machine = args.machine,
-                                                     dataset = args.dataset,
-                                                     augment = args.flip,
+    data_loader, eval_data_loader = get_data_loaders(dataset = args.dataset,
                                                      batch_size = args.batch_size,
                                                      num_workers = args.num_workers)
 
@@ -80,16 +78,14 @@ def main(args):
                                     data_loader,
                                     criterion = crit,
                                     message = "Evaluation(Train)",
-                                    log_step = args.start_step + epoch * total_step,
-                                    logger=curr_logger,
+                                    log_step = epoch * total_step,
                                     datasplit = "train")
 
 
             curr_loss, curr_wacc = eval_step( model,
                                               eval_data_loader,
                                               criterion = crit,
-                                              log_step = args.start_step + epoch * total_step,
-                                              logger=curr_logger,
+                                              log_step = epoch * total_step,
                                               message = "Evaluation(Valid)")
 
         if args.evaluate_only:
@@ -315,7 +311,7 @@ def to_var(x, volatile=False):
         x = x.cuda()
     return Variable(x, volatile=volatile)
 
-def get_data_loaders(machine, dataset, augment, batch_size, num_workers):
+def get_data_loaders(dataset, batch_size, num_workers):
     # Get dataset information
     if util.LMDB_data_path == None:
         print "Error: LMDB data dataset path is not set. Set it in util.py"
@@ -323,12 +319,16 @@ def get_data_loaders(machine, dataset, augment, batch_size, num_workers):
 
     if dataset == "syn":
         dataset_root = os.path.join(util.LMDB_data_path, 'syn')
-        train_set    = KP_PascalDataset(dataset_root, 'train', flip = augment)
-        test_set     = KP_PascalDataset(dataset_root, 'test', flip = False)
+        train_set    = KP_Dataset(dataset_root, 'train', flip = False )
+        test_set     = KP_Dataset(dataset_root, 'test', flip = False)
     elif dataset == "pascal":
-        dataset_root = os.path.join(util.LMDB_data_path, 'pacal')
-        train_set = KP_PascalDataset(dataset_root, 'train', flip = augment)
-        test_set  = KP_PascalDataset(dataset_root, 'test', flip = False)
+        dataset_root = os.path.join(util.LMDB_data_path, 'pascal')
+        train_set = KP_Dataset(dataset_root, 'train', flip = False)
+        test_set  = KP_Dataset(dataset_root, 'test', flip = False)
+    else:
+        print "Error: Dataset argument not recognized. Set to either pascal or syn."
+        exit()
+
 
     data_loader = torch.utils.data.DataLoader(dataset=train_set,
                                               batch_size=batch_size,
@@ -348,18 +348,23 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--save_step',       type=int , default=10000)
+    # logging parameters
     parser.add_argument('--save_epoch',      type=int , default=2)
     parser.add_argument('--eval_epoch',      type=int , default=5)
-    parser.add_argument('--num_epochs',      type=int, default=100)
     parser.add_argument('--log_rate',        type=int, default=10)
-    parser.add_argument('--batch_size',      type=int, default=128)
     parser.add_argument('--num_workers',     type=int, default=7)
+
+    # training parameters
+    parser.add_argument('--num_epochs',      type=int, default=100)
+    parser.add_argument('--batch_size',      type=int, default=128)
     parser.add_argument('--learning_rate',   type=float, default=0.0001)
-    parser.add_argument('--dataset',         type=str, default='syn')
-    parser.add_argument('--model',           type=str, default='softmax')
-    parser.add_argument('--experiment_name', type=str, default=None)
     parser.add_argument('--optimizer',       type=str,default='adam')
+
+    # experiment details
+    parser.add_argument('--dataset',         type=str, default='pascal')
+    parser.add_argument('--model',           type=str, default='render')
+    parser.add_argument('--experiment_name', type=str, default=None)
+    parser.add_argument('--evaluate_only',   action="store_true",default=False)
 
     args = parser.parse_args()
 

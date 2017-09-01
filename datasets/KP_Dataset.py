@@ -17,7 +17,7 @@ from PIL            import Image
 from util           import label_to_probs
 from torchvision    import transforms
 
-class KP_PascalDataset(data.Dataset):
+class KP_Dataset(data.Dataset):
 
     def __init__(self, dataset_root, datasplit, flip = False):
 
