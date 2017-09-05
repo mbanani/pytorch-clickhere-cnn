@@ -67,7 +67,15 @@ class KP_Dataset(data.Dataset):
         """
         # Load and transform image
         key = self.keys[index]
-        _, _year, _imid, _, _objc, _bb, _ = key.split('_')
+        # _, _year, _imid, _, _objc, _bb, _ = key.split('_')
+        key_splits = key.split('_')
+        if len(key_splits) == 7:
+            # Pascal Dataset -> unique_year_image_objID_objClass_BBOX_KP-info
+            _, _year, _imid, _, _objc, _bb, _ = key_splits
+        elif len(key_splits) == 11:
+            # Pascal Dataset -> unique_model_image_azim_elev_tilt_dist_objID_objClass_BBOX_KP-info
+            _, _year, _imid, _,_,_,_, _, _objc, _bb, _ = key_splits
+
         key_uid = _year + '_' + _imid + '_' + _objc + '_' + _bb
 
 
