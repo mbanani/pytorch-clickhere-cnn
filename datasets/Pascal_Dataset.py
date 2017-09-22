@@ -14,7 +14,7 @@ import numpy            as np
 import torch.utils.data as data
 
 from PIL            import Image
-from util           import label_to_probs
+from ..util          import label_to_probs
 from torchvision    import transforms
 
 from IPython import embed
@@ -91,8 +91,7 @@ class Pascal_Dataset(data.Dataset):
         kp_cls  = self.kp_cls[index]
         obj_cls = self.obj_cls[index]
         view    = self.vp_labels[index]
-        # flip    = self.flip[index]
-        flip    = False
+        flip    = self.flip[index]
 
         # Transform labels
         azim, elev, tilt = label_to_probs(  view,
