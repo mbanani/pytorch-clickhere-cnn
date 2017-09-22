@@ -14,7 +14,7 @@ import numpy            as np
 import torch.utils.data as data
 
 from PIL            import Image
-from util           import label_to_probs
+from ..util           import label_to_probs
 from torchvision    import transforms
 
 class KP_Dataset(data.Dataset):
