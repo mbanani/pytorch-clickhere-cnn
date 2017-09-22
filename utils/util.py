@@ -7,13 +7,6 @@ from scipy import linalg as linAlg
 ###############################################################################
 ######################### Paths to be set ####################################
 
-render4cnn_weights = '/z/home/mbanani/clickhere/model_weights/render4cnn.pth'
-clickhere_weights  = '/z/home/mbanani/clickhere/model_weights/ch_cnn.npy'
-
-LMDB_data_path     = '/z/home/mbanani/click-here-cnn/data/lmdb_data'
-
-###############################################################################
-
 # Angle conversions
 def deg2rad(deg_angle):
     return deg_angle * np.pi / 180.0
@@ -202,13 +195,11 @@ def label_to_probs(view_angles, object_class, flip, num_classes = 12):
 
     # extract angles
     if flip:
-        azim = view_angles[0] % 360
-        azim = np.mod(360-azim, 360)
+        azim = np.mod(360-view_angles[0], 360)
 
         elev = view_angles[1] % 360
 
-        tilt = view_angles[2] % 360
-        tilt = np.mod(-1*tilt, 360)
+        tilt = np.mod(-1*view_angles[2], 360)
     else:
         azim = view_angles[0] % 360
         elev = view_angles[1] % 360
