@@ -3,15 +3,14 @@ import os
 import sys
 import shutil
 import time
-import util
+import PATHS
 
 import numpy as np
 
 import torch
 from torch.autograd import Variable
 
-from util           import evaluate_performance
-from viewpoint_loss import ViewpointLoss
+from utils          import ViewpointLoss, evaluate_performance
 from datasets       import KP_Dataset, Pascal_Dataset
 from models         import render4cnn, clickhere_cnn
 from pycrayon       import CrayonClient
@@ -36,22 +35,22 @@ def main(args):
     if args.model == 'render':
         model = render4cnn()
     elif args.model == 'clickhere':
-        if util.render4cnn_weights == None:
-            print "Error: Clickhere requires initialization with render4cnn weights. Set it in util.py."
+        if PATHS.render4cnn_weights == None:
+            print "Error: Clickhere requires initialization with render4cnn weights. Set it in PATHS.py."
             exit()
-        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = util.render4cnn_weights))
+        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = PATHS.render4cnn_weights, batch_norm = args.batch_norm))
 
     elif args.model == 'pretrained_render':
-        if util.render4cnn_weights == None:
-            print "Error: Weights path for pretrained render4cnn cannot be None. Set it in util.py."
+        if PATHS.render4cnn_weights == None:
+            print "Error: Weights path for pretrained render4cnn cannot be None. Set it in PATHS.py."
             exit()
-        model = render4cnn(weights = 'lua', weights_path = util.render4cnn_weights)
+        model = render4cnn(weights = 'lua', weights_path = PATHS.render4cnn_weights, batch_norm = args.batch_norm)
 
     elif args.model == 'pretrained_clickhere':
-        if util.clickhere_weights == None:
-            print "Error: Weights path for pretrained clickhere cannot be None. Set it in util.py."
+        if PATHS.clickhere_weights == None:
+            print "Error: Weights path for pretrained clickhere cannot be None. Set it in PATHS.py."
             exit()
-        model = clickhere_cnn(render4cnn(), weights_path = util.clickhere_weights)
+        model = clickhere_cnn(render4cnn(batch_norm = args.batch_norm), weights_path = PATHS.clickhere_weights)
 
     else:
         print "Error: unknown model choice. Exiting."
@@ -96,13 +95,13 @@ def main(args):
                                               log_step = epoch * total_step,
                                               logger=curr_logger)
 
-        else:
-            model.eval()
-            _ = eval_loss(  model,
-                            eval_data_loader,
-                            criterion = crit,
-                            log_step = epoch * total_step,
-                            logger=curr_logger)
+        # else:
+        #     model.eval()
+        #     _ = eval_loss(  model,
+        #                     eval_data_loader,
+        #                     criterion = crit,
+        #                     log_step = epoch * total_step,
+        #                     logger=curr_logger)
 
         if args.evaluate_only:
             exit()
@@ -173,10 +172,10 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
         loss.backward()
         optimizer.step()
 
-        logger.add_scalar_value("Viewpoint Loss/train_azim",  loss_a.data[0] , step=step + i)
-        logger.add_scalar_value("Viewpoint Loss/train_elev",  loss_e.data[0] , step=step + i)
-        logger.add_scalar_value("Viewpoint Loss/train_tilt",  loss_t.data[0] , step=step + i)
-        logger.add_scalar_value("Viewpoint Loss/train_total", loss.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_azim",  loss_a.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_elev",  loss_e.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_tilt",  loss_t.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_total", loss.data[0] , step=step + i)
 
         processing_time += time.time() - training_time
 
@@ -195,10 +194,10 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
                                                                                                                         curr_batch_time,
                                                                                                                         curr_time_left / 60.)
 
-            logger.add_scalar_value("Misc/batch_time(s)",    curr_batch_time,        step=step + i)
-            logger.add_scalar_value("Misc/train_%"   ,       curr_train_per,         step=step + i)
-            logger.add_scalar_value("Misc/epoch_time(min)",  curr_epoch_time / 60.,  step=step + i)
-            logger.add_scalar_value("Misc/time_left(min)" ,  curr_time_left / 60.,   step=step + i)
+            logger.add_scalar_value("(CH-CNN) Misc/batch_time(s)",    curr_batch_time,        step=step + i)
+            logger.add_scalar_value("(CH-CNN) Misc/train_%"   ,       curr_train_per,         step=step + i)
+            logger.add_scalar_value("(CH-CNN) Misc/epoch_time(min)",  curr_epoch_time / 60.,  step=step + i)
+            logger.add_scalar_value("(CH-CNN) Misc/time_left(min)" ,  curr_time_left / 60.,   step=step + i)
 
             # Reset counters
             counter = 0
@@ -213,7 +212,6 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
                             criterion = criterion,
                             log_step = step + i,
                             logger=logger)
-
 
 
 def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,  datasplit = 'val'):
@@ -313,20 +311,20 @@ def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,
     print "Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_bus",   altered_geo_dist_median[0], step=log_step)
-    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_car",   altered_geo_dist_median[1], step=log_step)
-    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_mbike", altered_geo_dist_median[2], step=log_step)
-    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_total", overall_mean_median,        step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_bus",   altered_geo_dist_median[0], step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_car",   altered_geo_dist_median[1], step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_mbike", altered_geo_dist_median[2], step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_total", overall_mean_median,        step=log_step)
 
-    logger.add_scalar_value("Accuracy_30deg" + datasplit + "_bus",   100 * float(altered_epoch_type_acc[0]), step=log_step)
-    logger.add_scalar_value("Accuracy_30deg/" + datasplit + "_car",   100 * float(altered_epoch_type_acc[1]), step=log_step)
-    logger.add_scalar_value("Accuracy_30deg/" + datasplit + "_mbike", 100 * float(altered_epoch_type_acc[2]), step=log_step)
-    logger.add_scalar_value("Accuracy_30deg/" + datasplit + "_total", 100 * float(w_acc),                     step=log_step)
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_bus",   100 * float(altered_epoch_type_acc[0]), step=log_step)
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_car",   100 * float(altered_epoch_type_acc[1]), step=log_step)
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_mbike", 100 * float(altered_epoch_type_acc[2]), step=log_step)
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_total", 100 * float(w_acc),                     step=log_step)
 
-    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
-    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
-    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
-    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_total",   (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_total",   (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
 
     epoch_loss = float(epoch_loss)
     assert type(epoch_loss) == float, 'Error: Loss type is not float'
@@ -364,10 +362,10 @@ def eval_loss(model, data_loader, criterion = None, log_step = 0, logger = None,
 
 
 
-    logger.add_scalar_value("viewpoint loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
-    logger.add_scalar_value("viewpoint loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
-    logger.add_scalar_value("viewpoint loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
-    logger.add_scalar_value("viewpoint loss/" + datasplit +"_total", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_total", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
 
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     print "Type Loss    : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step] , " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
@@ -406,16 +404,16 @@ def to_var(x, volatile=False):
 
 def get_data_loaders(dataset, batch_size, num_workers):
     # Get dataset information
-    if util.LMDB_data_path == None:
-        print "Error: LMDB data dataset path is not set. Set it in util.py"
+    if PATHS.LMDB_data_path == None:
+        print "Error: LMDB data dataset path is not set. Set it in PATHS.py"
         exit()
 
     if dataset == "syn":
-        dataset_root = os.path.join(util.LMDB_data_path, 'syn')
+        dataset_root = os.path.join(PATHS.LMDB_data_path, 'syn')
         train_set    = KP_Dataset(dataset_root, 'train', flip = False )
         test_set     = KP_Dataset(dataset_root, 'test', flip = False)
     elif dataset == "pascal":
-        dataset_root = os.path.join(util.LMDB_data_path, 'pascal')
+        dataset_root = os.path.join(PATHS.LMDB_data_path, 'pascal')
         train_set = KP_Dataset(dataset_root, 'train', flip = False)
         test_set  = KP_Dataset(dataset_root, 'test', flip = False)
     elif dataset == "pascal_new":
@@ -449,7 +447,7 @@ if __name__ == '__main__':
     # logging parameters
     parser.add_argument('--save_epoch',      type=int , default=2)
     parser.add_argument('--eval_epoch',      type=int , default=5)
-    parser.add_argument('--eval_step',      type=int , default=5)
+    parser.add_argument('--eval_step',      type=int , default=100)
     parser.add_argument('--log_rate',        type=int, default=10)
     parser.add_argument('--num_workers',     type=int, default=7)
 
@@ -458,6 +456,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size',      type=int, default=128)
     parser.add_argument('--learning_rate',   type=float, default=0.0001)
     parser.add_argument('--optimizer',       type=str,default='adam')
+    parser.add_argument('--batch_norm',      action="store_true",default=False)
 
     # experiment details
     parser.add_argument('--dataset',         type=str, default='pascal')
