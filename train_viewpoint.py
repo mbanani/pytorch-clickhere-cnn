@@ -103,7 +103,7 @@ def main(args):
                             criterion = crit,
                             log_step = epoch * total_step,
                             logger=curr_logger)
-    
+
         if args.evaluate_only:
             exit()
 
@@ -173,10 +173,10 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
         loss.backward()
         optimizer.step()
 
-        logger.add_scalar_value("train_batch_loss_azim",  loss_a.data[0] , step=step + i)
-        logger.add_scalar_value("train_batch_loss_elev",  loss_e.data[0] , step=step + i)
-        logger.add_scalar_value("train_batch_loss_tilt",  loss_t.data[0] , step=step + i)
-        logger.add_scalar_value("train_batch_total",        loss.data[0] , step=step + i)
+        logger.add_scalar_value("Viewpoint Loss/train_azim",  loss_a.data[0] , step=step + i)
+        logger.add_scalar_value("Viewpoint Loss/train_elev",  loss_e.data[0] , step=step + i)
+        logger.add_scalar_value("Viewpoint Loss/train_tilt",  loss_t.data[0] , step=step + i)
+        logger.add_scalar_value("Viewpoint Loss/train_total", loss.data[0] , step=step + i)
 
         processing_time += time.time() - training_time
 
@@ -195,10 +195,10 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
                                                                                                                         curr_batch_time,
                                                                                                                         curr_time_left / 60.)
 
-            logger.add_scalar_value("log_batch_time(s)",    curr_batch_time,        step=step + i)
-            logger.add_scalar_value("log_train_%"   ,       curr_train_per,         step=step + i)
-            logger.add_scalar_value("log_epoch_time(min)",  curr_epoch_time / 60.,  step=step + i)
-            logger.add_scalar_value("log_time_left(min)" ,  curr_time_left / 60.,   step=step + i)
+            logger.add_scalar_value("Misc/batch_time(s)",    curr_batch_time,        step=step + i)
+            logger.add_scalar_value("Misc/train_%"   ,       curr_train_per,         step=step + i)
+            logger.add_scalar_value("Misc/epoch_time(min)",  curr_epoch_time / 60.,  step=step + i)
+            logger.add_scalar_value("Misc/time_left(min)" ,  curr_time_left / 60.,   step=step + i)
 
             # Reset counters
             counter = 0
@@ -313,19 +313,20 @@ def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,
     print "Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-    if 'pascal' in args.dataset:
-        logger.add_scalar_value(datasplit + "_median_error_bus",  altered_geo_dist_median[0], step=log_step)
-        logger.add_scalar_value(datasplit + "_median_error_car",  altered_geo_dist_median[1], step=log_step)
-        logger.add_scalar_value(datasplit + "_median_error_mbike",altered_geo_dist_median[2], step=log_step)
-        logger.add_scalar_value(datasplit + "_accuracy_bus",   100 * float(altered_epoch_type_acc[0]), step=log_step)
-        logger.add_scalar_value(datasplit + "_accuracy_car",   100 * float(altered_epoch_type_acc[1]), step=log_step)
-        logger.add_scalar_value(datasplit + "_accuracy_mbike", 100 * float(altered_epoch_type_acc[2]), step=log_step)
-    logger.add_scalar_value(datasplit + "_median_error_total", overall_mean_median , step= log_step)
-    logger.add_scalar_value(datasplit + "_accuracy_total", 100 * float(w_acc) , step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_azim",  epoch_loss_a / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_elev",  epoch_loss_e / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_tilt",  epoch_loss_t / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_total",  (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
+    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_bus",   altered_geo_dist_median[0], step=log_step)
+    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_car",   altered_geo_dist_median[1], step=log_step)
+    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_mbike", altered_geo_dist_median[2], step=log_step)
+    logger.add_scalar_value("Median Geodsic Error/" + datasplit + "_total", overall_mean_median,        step=log_step)
+
+    logger.add_scalar_value("Accuracy_30deg" + datasplit + "_bus",   100 * float(altered_epoch_type_acc[0]), step=log_step)
+    logger.add_scalar_value("Accuracy_30deg/" + datasplit + "_car",   100 * float(altered_epoch_type_acc[1]), step=log_step)
+    logger.add_scalar_value("Accuracy_30deg/" + datasplit + "_mbike", 100 * float(altered_epoch_type_acc[2]), step=log_step)
+    logger.add_scalar_value("Accuracy_30deg/" + datasplit + "_total", 100 * float(w_acc),                     step=log_step)
+
+    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
+    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
+    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
+    logger.add_scalar_value("Viewpoint Loss/" + datasplit +"_total",   (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
 
     epoch_loss = float(epoch_loss)
     assert type(epoch_loss) == float, 'Error: Loss type is not float'
@@ -363,10 +364,10 @@ def eval_loss(model, data_loader, criterion = None, log_step = 0, logger = None,
 
 
 
-    logger.add_scalar_value(datasplit +"_loss_azim",  epoch_loss_a / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_elev",  epoch_loss_e / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_tilt",  epoch_loss_t / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_total",  (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
+    logger.add_scalar_value("viewpoint loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
+    logger.add_scalar_value("viewpoint loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
+    logger.add_scalar_value("viewpoint loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
+    logger.add_scalar_value("viewpoint loss/" + datasplit +"_total", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
 
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     print "Type Loss    : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step] , " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
