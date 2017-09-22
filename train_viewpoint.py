@@ -12,7 +12,7 @@ from torch.autograd import Variable
 
 from util           import evaluate_performance
 from viewpoint_loss import ViewpointLoss
-from datasets       import KP_Dataset
+from datasets       import KP_Dataset, Pascal_Dataset
 from models         import render4cnn, clickhere_cnn
 from pycrayon       import CrayonClient
 
@@ -81,7 +81,7 @@ def main(args):
     for epoch in range(0, args.num_epochs):
         if epoch % args.eval_epoch == 0:
             model.eval()
-            if 'pascal' in args.dataset:
+            if 'pascal' in args.dataset and args.evaluate_train:
                 _, _ = eval_step(   model,
                                     data_loader,
                                     criterion = crit,
@@ -96,6 +96,14 @@ def main(args):
                                               log_step = epoch * total_step,
                                               logger=curr_logger)
 
+        else:
+            model.eval()
+            _ = eval_loss(  model,
+                            eval_data_loader,
+                            criterion = crit,
+                            log_step = epoch * total_step,
+                            logger=curr_logger)
+    
         if args.evaluate_only:
             exit()
 
@@ -118,6 +126,7 @@ def main(args):
                 step  = epoch * total_step,
                 logger=curr_logger,
                 eval_data_loader = eval_data_loader)
+
 
 
 def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, eval_data_loader):
@@ -177,8 +186,8 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
 
             curr_batch_time = time_diff / (1.*args.log_rate)
             curr_train_per  = processing_time/time_diff
-            curr_epoch_time = (time.time() - epoch_time) * (total_step / (i+1))
-            curr_time_left  = (time.time() - epoch_time) * ((total_step - i) / (i+1))
+            curr_epoch_time = (time.time() - epoch_time) * (total_step / (i+1.))
+            curr_time_left  = (time.time() - epoch_time) * ((total_step - i) / (i+1.))
 
             print "Epoch [%d/%d] Step [%d/%d]: Training Loss = %2.5f, Batch Time = %.2f sec, Time Left = %.1f mins." %( epoch, args.num_epochs,
                                                                                                                         i, total_step,
@@ -295,13 +304,13 @@ def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,
     w_acc = np.mean(altered_epoch_type_acc)
 
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    print "Median Error : ", int(1000 * overall_mean_median) / 1000., " degrees"
-    print "Correct      : ", altered_epoch_type_correct
-    print "Total num    : ", altered_epoch_type_total
-    print "Type Acc     : ", [ int(10000 * a_type_acc) / 100. for a_type_acc in altered_epoch_type_acc ]
-    print "Type Median  : ", [ int(1000 * a_type_med) / 1000. for a_type_med in altered_geo_dist_median ]
-    print "Type Loss    : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step]
-    print "W. Accu      : ", int (10000 * w_acc) / 100., " %"
+    # print "Median Error  : ", int(1000 * overall_mean_median) / 1000., " degrees"
+    # print "Accuracy_pi/6 : ", int (10000 * w_acc) / 100., " %"
+    # print "Correct       : ", altered_epoch_type_correct
+    # print "Total num     : ", altered_epoch_type_total
+    print "Type Acc_pi/6 : ", [ int(10000 * a_type_acc) / 100. for a_type_acc in altered_epoch_type_acc ], " -> ", int (10000 * w_acc) / 100., " %"
+    print "Type Median   : ", [ int(1000 * a_type_med) / 1000. for a_type_med in altered_geo_dist_median ], " -> ", int(1000 * overall_mean_median) / 1000., " degrees"
+    print "Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
     if 'pascal' in args.dataset:
@@ -325,11 +334,11 @@ def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,
 
 def eval_loss(model, data_loader, criterion = None, log_step = 0, logger = None,  datasplit = 'val'):
 
-    total_step = len(data_loader)
-    epoch_loss_a        = 0.
-    epoch_loss_e        = 0.
-    epoch_loss_t        = 0.
-    epoch_loss          = 0.
+    total_step      = len(data_loader)
+    epoch_loss_a    = 0.
+    epoch_loss_e    = 0.
+    epoch_loss_t    = 0.
+    epoch_loss      = 0.
 
     for step, (images, azim_label, elev_label, tilt_label, obj_class, kp_map, kp_class, key_uid) in enumerate(data_loader):
 
@@ -353,15 +362,15 @@ def eval_loss(model, data_loader, criterion = None, log_step = 0, logger = None,
         epoch_loss_t += criterion(tilt, tilt_label, object_class).data[0]
 
 
-    print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    print "Type Loss    : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step] , " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
-    print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
     logger.add_scalar_value(datasplit +"_loss_azim",  epoch_loss_a / total_step, step=log_step)
     logger.add_scalar_value(datasplit +"_loss_elev",  epoch_loss_e / total_step, step=log_step)
     logger.add_scalar_value(datasplit +"_loss_tilt",  epoch_loss_t / total_step, step=log_step)
     logger.add_scalar_value(datasplit +"_loss_total",  (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
 
+    print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    print "Type Loss    : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step] , " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
+    print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
 def save_checkpoint(model, optimizer, curr_epoch, curr_step, args, curr_loss, curr_wacc, filename):
     """
@@ -408,6 +417,11 @@ def get_data_loaders(dataset, batch_size, num_workers):
         dataset_root = os.path.join(util.LMDB_data_path, 'pascal')
         train_set = KP_Dataset(dataset_root, 'train', flip = False)
         test_set  = KP_Dataset(dataset_root, 'test', flip = False)
+    elif dataset == "pascal_new":
+        csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_train_image_keypoint_info.csv'
+        csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_test_image_keypoint_info.csv'
+        train_set = Pascal_Dataset(csv_train, flip = False)
+        test_set  = Pascal_Dataset(csv_test,  flip = False)
     else:
         print "Error: Dataset argument not recognized. Set to either pascal or syn."
         exit()
@@ -449,6 +463,7 @@ if __name__ == '__main__':
     parser.add_argument('--model',           type=str, default='render')
     parser.add_argument('--experiment_name', type=str, default=None)
     parser.add_argument('--evaluate_only',   action="store_true",default=False)
+    parser.add_argument('--evaluate_train',   action="store_true",default=False)
 
     args = parser.parse_args()
 
