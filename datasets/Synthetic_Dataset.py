@@ -19,7 +19,7 @@ from torchvision    import transforms
 
 from IPython import embed
 
-class Pascal_Dataset(data.Dataset):
+class Synthetic_Dataset(data.Dataset):
 
 
     """
@@ -32,12 +32,8 @@ class Pascal_Dataset(data.Dataset):
 
         start_time = time.time()
 
-        # dataset parameters
-        self.root           = dataset_root
-        self.loader         = self.pil_loader
-        self.num_classes    = num_classes
-
         # Load instance data from csv-file
+        self.root           = dataset_root
         im_paths, bbox, kp_loc, kp_cls, obj_cls, vp_labels = self.csv_to_instances(csv_path)
 
         print "csv file length: ", len(im_paths)
@@ -60,9 +56,12 @@ class Pascal_Dataset(data.Dataset):
             self.vp_labels  = vp_labels
             self.flip       = [False] * len(im_paths)
 
+        # dataset parameters
+        self.data_size      = len(self.im_paths)
+        self.num_classes    = num_classes
+        self.loader         = self.pil_loader
 
         # Normalization as for RenderForCNN and Clickhere CNN
-        self.data_size      = len(self.im_paths)
         self.transform      = transforms.Compose([
                                 transforms.ToTensor(),
                                 transforms.Normalize(   mean=(0., 0., 0.),
@@ -110,10 +109,10 @@ class Pascal_Dataset(data.Dataset):
             img = self.transform(img)
 
         # construct keypoint map and keypoint class vector
-        fake_kpm = np.zeros( (227, 227) )
         fake_kpc = np.zeros( (34) )
         # fake_kpc[kp_cls] = 1
         kp_class = torch.from_numpy(fake_kpc).float()
+        fake_kpm = np.zeros( (227, 227) )
         kp_map   = torch.from_numpy(fake_kpm).float()
 
         #TODO construct unique key for statistics -- only need to generate imid and year
@@ -178,7 +177,7 @@ class Pascal_Dataset(data.Dataset):
 
         image_paths = np.squeeze(data_split[0]).tolist()
         if self.root != None:
-            image_paths = [path.split('pascal3d/')[1] for path in image_paths]
+            image_paths = [path.split('syn_images_cropped_bkg_overlaid/')[1] for path in image_paths]
         bboxes      = data_split[1].tolist()
         kp_loc      = data_split[2].tolist()
         kp_class    = np.squeeze(data_split[3]).tolist()
