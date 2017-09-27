@@ -13,10 +13,11 @@ import torch.nn.functional as F
 from torch import nn
 
 class ViewpointLoss(nn.Module):
-    def __init__(self, num_classes = 12, class_period = 360):
+    def __init__(self, num_classes = 12, class_period = 360, mean = True):
         super(ViewpointLoss, self).__init__()
         self.num_classes = num_classes
         self.class_period = class_period
+        self.mean = mean
 
     def forward(self, preds, labels, obj_classes):
         """
@@ -38,8 +39,10 @@ class ViewpointLoss(nn.Module):
         for inst_id in range(batch_size):
             start_index = int(obj_classes[inst_id].data[0]) * self.class_period
             end_index   = start_index + self.class_period
-            # loss -= (labels[inst_id, start_index:end_index] * preds[inst_id, start_index:end_index].log()).mean() / preds[inst_id, start_index:end_index].sum()
-            loss -= (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index])).mean()
+            if self.mean:
+                loss -= (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index])).mean()
+            else:
+                loss -= (labels[inst_id, start_index:end_index] * preds[inst_id, start_index:end_index].log()).mean() / preds[inst_id, start_index:end_index].sum()
 
         loss = loss / batch_size
         return loss

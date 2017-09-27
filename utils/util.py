@@ -184,7 +184,6 @@ def label_to_probs(view_angles, object_class, flip, num_classes = 12):
     '''
     Returns three arrays for the viewpoint labels, one for each rotation axis.
     A label is given by 360 * object_class_id + angle
-    :param grouped_instance_info:
     :return:
     '''
     # Calculate object multiplier
