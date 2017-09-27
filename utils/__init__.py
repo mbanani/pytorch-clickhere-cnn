@@ -1,3 +1,4 @@
 from viewpoint_loss import *
 from util           import *
-import PATHS
+from Logger         import Logger
+import Paths

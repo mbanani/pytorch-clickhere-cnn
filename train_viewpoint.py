@@ -3,27 +3,27 @@ import os
 import sys
 import shutil
 import time
-import PATHS
 
 import numpy as np
 
 import torch
 from torch.autograd import Variable
 
-from utils          import ViewpointLoss, evaluate_performance
-from datasets       import KP_Dataset, Pascal_Dataset
+from utils          import ViewpointLoss, evaluate_performance, Logger, Paths
+from datasets       import KP_Dataset, Pascal_Dataset, Synthetic_Dataset
 from models         import render4cnn, clickhere_cnn
-from pycrayon       import CrayonClient
+# from pycrayon       import CrayonClient
 
 
 def main(args):
     initialization_time = time.time()
 
     # Define Logger
-    cc = CrayonClient(hostname="focus.eecs.umich.edu")
-    curr_logger = cc.create_experiment( ("exp_%s_%s_%s" % ( time.strftime("%d_%m_%H_%M_%S"),
-                                                            args.dataset,
-                                                            args.experiment_name) ) )
+    exp_log_name = ("exp_%s_%s_%s" % ( time.strftime("%d_%m_%H_%M_%S"), args.dataset, args.experiment_name) )
+    # cc = CrayonClient("focus.eecs.umich.edu")
+    # curr_logger = cc.create_experiment( exp_log_name )
+    curr_logger = Logger(os.path.join(Paths.tensorboard_logdir, log_name))
+
 
 
     print "#############  Read in Database   ##############"
@@ -35,22 +35,22 @@ def main(args):
     if args.model == 'render':
         model = render4cnn()
     elif args.model == 'clickhere':
-        if PATHS.render4cnn_weights == None:
-            print "Error: Clickhere requires initialization with render4cnn weights. Set it in PATHS.py."
+        if Paths.render4cnn_weights == None:
+            print "Error: Clickhere requires initialization with render4cnn weights. Set it in Paths.py."
             exit()
-        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = PATHS.render4cnn_weights, batch_norm = args.batch_norm))
+        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm))
 
     elif args.model == 'pretrained_render':
-        if PATHS.render4cnn_weights == None:
-            print "Error: Weights path for pretrained render4cnn cannot be None. Set it in PATHS.py."
+        if Paths.render4cnn_weights == None:
+            print "Error: Weights path for pretrained render4cnn cannot be None. Set it in Paths.py."
             exit()
-        model = render4cnn(weights = 'lua', weights_path = PATHS.render4cnn_weights, batch_norm = args.batch_norm)
+        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm)
 
     elif args.model == 'pretrained_clickhere':
-        if PATHS.clickhere_weights == None:
-            print "Error: Weights path for pretrained clickhere cannot be None. Set it in PATHS.py."
+        if Paths.clickhere_weights == None:
+            print "Error: Weights path for pretrained clickhere cannot be None. Set it in Paths.py."
             exit()
-        model = clickhere_cnn(render4cnn(batch_norm = args.batch_norm), weights_path = PATHS.clickhere_weights)
+        model = clickhere_cnn(render4cnn(batch_norm = args.batch_norm), weights_path = Paths.clickhere_weights)
 
     else:
         print "Error: unknown model choice. Exiting."
@@ -61,9 +61,9 @@ def main(args):
     params = list(model.parameters())
 
     if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(params, lr = args.learning_rate, betas = (0.9, 0.999), eps=1e-8, weight_decay=0)
+        optimizer = torch.optim.Adam(params, lr = args.lr, betas = (0.9, 0.999), eps=1e-8, weight_decay=0)
     elif args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(params, lr=args.learning_rate, momentum = 0.9, weight_decay = 0.0005)
+        optimizer = torch.optim.SGD(params, lr=args.lr, momentum = 0.9, weight_decay = 0.0005)
     else:
         print "Error: Unknown choice for optimizer. Exiting."
         exit()
@@ -194,10 +194,11 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
                                                                                                                         curr_batch_time,
                                                                                                                         curr_time_left / 60.)
 
-            logger.add_scalar_value("(CH-CNN) Misc/batch_time(s)",    curr_batch_time,        step=step + i)
-            logger.add_scalar_value("(CH-CNN) Misc/train_%"   ,       curr_train_per,         step=step + i)
-            logger.add_scalar_value("(CH-CNN) Misc/epoch_time(min)",  curr_epoch_time / 60.,  step=step + i)
-            logger.add_scalar_value("(CH-CNN) Misc/time_left(min)" ,  curr_time_left / 60.,   step=step + i)
+
+            logger.add_scalar_value("Misc/batch time (s)",    curr_batch_time,        step=step + i)
+            logger.add_scalar_value("Misc/Train_%",           curr_train_per,         step=step + i)
+            logger.add_scalar_value("Misc/epoch time (min)",  curr_epoch_time / 60.,  step=step + i)
+            logger.add_scalar_value("Misc/time left (min)",   curr_time_left / 60.,   step=step + i)
 
             # Reset counters
             counter = 0
@@ -404,22 +405,27 @@ def to_var(x, volatile=False):
 
 def get_data_loaders(dataset, batch_size, num_workers):
     # Get dataset information
-    if PATHS.LMDB_data_path == None:
-        print "Error: LMDB data dataset path is not set. Set it in PATHS.py"
+    if Paths.LMDB_data_path == None:
+        print "Error: LMDB data dataset path is not set. Set it in Paths.py"
         exit()
 
     if dataset == "syn":
-        dataset_root = os.path.join(PATHS.LMDB_data_path, 'syn')
-        train_set    = KP_Dataset(dataset_root, 'train', flip = False )
+        dataset_root = os.path.join(Paths.LMDB_data_path, 'syn')
+        train_set    = KP_Dataset(dataset_root, 'train', flip = args.flip )
         test_set     = KP_Dataset(dataset_root, 'test', flip = False)
     elif dataset == "pascal":
-        dataset_root = os.path.join(PATHS.LMDB_data_path, 'pascal')
-        train_set = KP_Dataset(dataset_root, 'train', flip = False)
+        dataset_root = os.path.join(Paths.LMDB_data_path, 'pascal')
+        train_set = KP_Dataset(dataset_root, 'train', flip = args.flip)
         test_set  = KP_Dataset(dataset_root, 'test', flip = False)
+    elif dataset == "syn_new":
+        csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_train_image_keypoint_info.csv'
+        csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_test_image_keypoint_info.csv'
+        train_set = Synthetic_Dataset(csv_train, flip = args.flip)
+        test_set  = Synthetic_Dataset(csv_test,  flip = False)
     elif dataset == "pascal_new":
         csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_train_image_keypoint_info.csv'
         csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_test_image_keypoint_info.csv'
-        train_set = Pascal_Dataset(csv_train, flip = False)
+        train_set = Pascal_Dataset(csv_train, flip = args.flip)
         test_set  = Pascal_Dataset(csv_test,  flip = False)
     else:
         print "Error: Dataset argument not recognized. Set to either pascal or syn."
@@ -447,14 +453,14 @@ if __name__ == '__main__':
     # logging parameters
     parser.add_argument('--save_epoch',      type=int , default=2)
     parser.add_argument('--eval_epoch',      type=int , default=5)
-    parser.add_argument('--eval_step',      type=int , default=100)
+    parser.add_argument('--eval_step',       type=int , default=100)
     parser.add_argument('--log_rate',        type=int, default=10)
     parser.add_argument('--num_workers',     type=int, default=7)
 
     # training parameters
     parser.add_argument('--num_epochs',      type=int, default=100)
     parser.add_argument('--batch_size',      type=int, default=128)
-    parser.add_argument('--learning_rate',   type=float, default=0.0001)
+    parser.add_argument('--lr',   type=float, default=0.0001)
     parser.add_argument('--optimizer',       type=str,default='adam')
     parser.add_argument('--batch_norm',      action="store_true",default=False)
 
@@ -463,18 +469,19 @@ if __name__ == '__main__':
     parser.add_argument('--model',           type=str, default='render')
     parser.add_argument('--experiment_name', type=str, default=None)
     parser.add_argument('--evaluate_only',   action="store_true",default=False)
-    parser.add_argument('--evaluate_train',   action="store_true",default=False)
+    parser.add_argument('--evaluate_train',  action="store_true",default=False)
+    parser.add_argument('--flip',            action="store_true",default=False)
 
     args = parser.parse_args()
 
-    args.experiment_path = os.path.join(experiment_dir, 'experiment_' + time.strftime("%m-%d_%H-%M-%S") + "_" + args.experiment_name)
+    args.experiment_path = os.path.join(experiment_dir, 'exp_'+ args.dataset + "_" + time.strftime("%m-%d_%H-%M-%S") + "_" + args.experiment_name)
     args.best_loss      = sys.float_info.max
     args.best_wacc      = 0.
     args.num_classes    = 12
 
     if args.experiment_name == None:
         args.experiment_name = ('%s_%s_%s_flip-%s'%(args.optimizer,
-                                                    str(args.learning_rate),
+                                                    str(args.lr),
                                                     args.model,
                                                     args.flip) )
 
