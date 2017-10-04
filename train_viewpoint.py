@@ -3,55 +3,61 @@ import os
 import sys
 import shutil
 import time
-import util
 
 import numpy as np
 
 import torch
 from torch.autograd import Variable
 
-from util           import evaluate_performance
-from viewpoint_loss import ViewpointLoss
-from datasets       import KP_Dataset
-from models         import render4cnn, clickhere_cnn
-from pycrayon       import CrayonClient
+from utils          import ViewpointLoss, evaluate_performance, Logger, Paths
+from utils          import get_data_loaders
+from models         import render4cnn, clickhere_cnn, vgg_tm
+# from pycrayon       import CrayonClient
 
 
 def main(args):
     initialization_time = time.time()
 
     # Define Logger
-    cc = CrayonClient(hostname="focus.eecs.umich.edu")
-    curr_logger = cc.create_experiment( ("exp_%s_%s_%s" % ( time.strftime("%d_%m_%H_%M_%S"),
-                                                            args.dataset,
-                                                            args.experiment_name) ) )
+    log_name    = args.full_experiment_name
+    curr_logger = Logger(os.path.join(Paths.tensorboard_logdir, log_name))
 
+    # log_name = ("exp_%s_%s_%s" % ( time.strftime("%d_%m_%H_%M_%S"), args.dataset, args.experiment_name) )
+    # cc = CrayonClient("focus.eecs.umich.edu")
+    # curr_logger = cc.create_experiment( exp_log_name )
 
     print "#############  Read in Database   ##############"
     data_loader, eval_data_loader = get_data_loaders(dataset = args.dataset,
                                                      batch_size = args.batch_size,
-                                                     num_workers = args.num_workers)
+                                                     num_workers = args.num_workers,
+                                                     machine = args.machine)
 
     print "#############  Initiate Model     ##############"
     if args.model == 'render':
         model = render4cnn()
     elif args.model == 'clickhere':
-        if util.render4cnn_weights == None:
-            print "Error: Clickhere requires initialization with render4cnn weights. Set it in util.py."
+        if Paths.render4cnn_weights == None:
+            print "Error: Clickhere requires initialization with render4cnn weights. Set it in Paths.py."
             exit()
-        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = util.render4cnn_weights))
+        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm))
 
     elif args.model == 'pretrained_render':
-        if util.render4cnn_weights == None:
-            print "Error: Weights path for pretrained render4cnn cannot be None. Set it in util.py."
+        if Paths.render4cnn_weights == None:
+            print "Error: Weights path for pretrained render4cnn cannot be None. Set it in Paths.py."
             exit()
-        model = render4cnn(weights = 'lua', weights_path = util.render4cnn_weights)
+        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm)
 
     elif args.model == 'pretrained_clickhere':
-        if util.clickhere_weights == None:
-            print "Error: Weights path for pretrained clickhere cannot be None. Set it in util.py."
+        if Paths.clickhere_weights == None:
+            print "Error: Weights path for pretrained clickhere cannot be None. Set it in Paths.py."
             exit()
-        model = clickhere_cnn(render4cnn(), weights_path = util.clickhere_weights)
+        model = clickhere_cnn(render4cnn(batch_norm = args.batch_norm), weights_path = Paths.clickhere_weights)
+
+    elif args.model == 'pretrained_vgg':
+        if Paths.vgg_weights == None:
+            print "Error: Weights path for pretrained clickhere cannot be None. Set it in Paths.py."
+            exit()
+        model = vgg_tm(weights_path = Paths.vgg_weights)
 
     else:
         print "Error: unknown model choice. Exiting."
@@ -62,9 +68,9 @@ def main(args):
     params = list(model.parameters())
 
     if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(params, lr = args.learning_rate, betas = (0.9, 0.999), eps=1e-8, weight_decay=0)
+        optimizer = torch.optim.Adam(params, lr = args.lr, betas = (0.9, 0.999), eps=1e-8, weight_decay=0)
     elif args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(params, lr=args.learning_rate, momentum = 0.9, weight_decay = 0.0005)
+        optimizer = torch.optim.SGD(params, lr=args.lr, momentum = 0.9, weight_decay = 0.0005)
     else:
         print "Error: Unknown choice for optimizer. Exiting."
         exit()
@@ -81,7 +87,7 @@ def main(args):
     for epoch in range(0, args.num_epochs):
         if epoch % args.eval_epoch == 0:
             model.eval()
-            if 'pascal' in args.dataset:
+            if 'pascal' in args.dataset and args.evaluate_train:
                 _, _ = eval_step(   model,
                                     data_loader,
                                     criterion = crit,
@@ -95,6 +101,14 @@ def main(args):
                                               criterion = crit,
                                               log_step = epoch * total_step,
                                               logger=curr_logger)
+
+        # else:
+        #     model.eval()
+        #     _ = eval_loss(  model,
+        #                     eval_data_loader,
+        #                     criterion = crit,
+        #                     log_step = epoch * total_step,
+        #                     logger=curr_logger)
 
         if args.evaluate_only:
             exit()
@@ -118,6 +132,7 @@ def main(args):
                 step  = epoch * total_step,
                 logger=curr_logger,
                 eval_data_loader = eval_data_loader)
+
 
 
 def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, eval_data_loader):
@@ -164,10 +179,10 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
         loss.backward()
         optimizer.step()
 
-        logger.add_scalar_value("train_batch_loss_azim",  loss_a.data[0] , step=step + i)
-        logger.add_scalar_value("train_batch_loss_elev",  loss_e.data[0] , step=step + i)
-        logger.add_scalar_value("train_batch_loss_tilt",  loss_t.data[0] , step=step + i)
-        logger.add_scalar_value("train_batch_total",        loss.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_azim",  loss_a.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_elev",  loss_e.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_tilt",  loss_t.data[0] , step=step + i)
+        logger.add_scalar_value("(CH-CNN) Viewpoint Loss/train_total", loss.data[0] , step=step + i)
 
         processing_time += time.time() - training_time
 
@@ -177,8 +192,8 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
 
             curr_batch_time = time_diff / (1.*args.log_rate)
             curr_train_per  = processing_time/time_diff
-            curr_epoch_time = (time.time() - epoch_time) * (total_step / (i+1))
-            curr_time_left  = (time.time() - epoch_time) * ((total_step - i) / (i+1))
+            curr_epoch_time = (time.time() - epoch_time) * (total_step / (i+1.))
+            curr_time_left  = (time.time() - epoch_time) * ((total_step - i) / (i+1.))
 
             print "Epoch [%d/%d] Step [%d/%d]: Training Loss = %2.5f, Batch Time = %.2f sec, Time Left = %.1f mins." %( epoch, args.num_epochs,
                                                                                                                         i, total_step,
@@ -186,10 +201,11 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
                                                                                                                         curr_batch_time,
                                                                                                                         curr_time_left / 60.)
 
-            logger.add_scalar_value("log_batch_time(s)",    curr_batch_time,        step=step + i)
-            logger.add_scalar_value("log_train_%"   ,       curr_train_per,         step=step + i)
-            logger.add_scalar_value("log_epoch_time(min)",  curr_epoch_time / 60.,  step=step + i)
-            logger.add_scalar_value("log_time_left(min)" ,  curr_time_left / 60.,   step=step + i)
+
+            logger.add_scalar_value("Misc/batch time (s)",    curr_batch_time,        step=step + i)
+            logger.add_scalar_value("Misc/Train_%",           curr_train_per,         step=step + i)
+            logger.add_scalar_value("Misc/epoch time (min)",  curr_epoch_time / 60.,  step=step + i)
+            logger.add_scalar_value("Misc/time left (min)",   curr_time_left / 60.,   step=step + i)
 
             # Reset counters
             counter = 0
@@ -204,7 +220,6 @@ def train_step(model, data_loader, criterion, optimizer, epoch, step, logger, ev
                             criterion = criterion,
                             log_step = step + i,
                             logger=logger)
-
 
 
 def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,  datasplit = 'val'):
@@ -295,28 +310,29 @@ def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,
     w_acc = np.mean(altered_epoch_type_acc)
 
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    print "Median Error : ", int(1000 * overall_mean_median) / 1000., " degrees"
-    print "Correct      : ", altered_epoch_type_correct
-    print "Total num    : ", altered_epoch_type_total
-    print "Type Acc     : ", [ int(10000 * a_type_acc) / 100. for a_type_acc in altered_epoch_type_acc ]
-    print "Type Median  : ", [ int(1000 * a_type_med) / 1000. for a_type_med in altered_geo_dist_median ]
-    print "Type Loss    : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step]
-    print "W. Accu      : ", int (10000 * w_acc) / 100., " %"
+    # print "Median Error  : ", int(1000 * overall_mean_median) / 1000., " degrees"
+    # print "Accuracy_pi/6 : ", int (10000 * w_acc) / 100., " %"
+    # print "Correct       : ", altered_epoch_type_correct
+    # print "Total num     : ", altered_epoch_type_total
+    print "Type Acc_pi/6 : ", [ int(10000 * a_type_acc) / 100. for a_type_acc in altered_epoch_type_acc ], " -> ", int (10000 * w_acc) / 100., " %"
+    print "Type Median   : ", [ int(1000 * a_type_med) / 1000. for a_type_med in altered_geo_dist_median ], " -> ", int(1000 * overall_mean_median) / 1000., " degrees"
+    print "Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-    if 'pascal' in args.dataset:
-        logger.add_scalar_value(datasplit + "_median_error_bus",  altered_geo_dist_median[0], step=log_step)
-        logger.add_scalar_value(datasplit + "_median_error_car",  altered_geo_dist_median[1], step=log_step)
-        logger.add_scalar_value(datasplit + "_median_error_mbike",altered_geo_dist_median[2], step=log_step)
-        logger.add_scalar_value(datasplit + "_accuracy_bus",   100 * float(altered_epoch_type_acc[0]), step=log_step)
-        logger.add_scalar_value(datasplit + "_accuracy_car",   100 * float(altered_epoch_type_acc[1]), step=log_step)
-        logger.add_scalar_value(datasplit + "_accuracy_mbike", 100 * float(altered_epoch_type_acc[2]), step=log_step)
-    logger.add_scalar_value(datasplit + "_median_error_total", overall_mean_median , step= log_step)
-    logger.add_scalar_value(datasplit + "_accuracy_total", 100 * float(w_acc) , step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_azim",  epoch_loss_a / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_elev",  epoch_loss_e / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_tilt",  epoch_loss_t / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_total",  (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_bus",   altered_geo_dist_median[0], step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_car",   altered_geo_dist_median[1], step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_mbike", altered_geo_dist_median[2], step=log_step)
+    logger.add_scalar_value("(CH-CNN) Median Geodsic Error/" + datasplit + "_total", overall_mean_median,        step=log_step)
+
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_bus",   100 * float(altered_epoch_type_acc[0]), step=log_step)
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_car",   100 * float(altered_epoch_type_acc[1]), step=log_step)
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_mbike", 100 * float(altered_epoch_type_acc[2]), step=log_step)
+    logger.add_scalar_value("(CH-CNN) Accuracy_30deg/" + datasplit + "_total", 100 * float(w_acc),                     step=log_step)
+
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_total",   (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
 
     epoch_loss = float(epoch_loss)
     assert type(epoch_loss) == float, 'Error: Loss type is not float'
@@ -325,11 +341,11 @@ def eval_step(model, data_loader, criterion = None, log_step = 0, logger = None,
 
 def eval_loss(model, data_loader, criterion = None, log_step = 0, logger = None,  datasplit = 'val'):
 
-    total_step = len(data_loader)
-    epoch_loss_a        = 0.
-    epoch_loss_e        = 0.
-    epoch_loss_t        = 0.
-    epoch_loss          = 0.
+    total_step      = len(data_loader)
+    epoch_loss_a    = 0.
+    epoch_loss_e    = 0.
+    epoch_loss_t    = 0.
+    epoch_loss      = 0.
 
     for step, (images, azim_label, elev_label, tilt_label, obj_class, kp_map, kp_class, key_uid) in enumerate(data_loader):
 
@@ -353,15 +369,15 @@ def eval_loss(model, data_loader, criterion = None, log_step = 0, logger = None,
         epoch_loss_t += criterion(tilt, tilt_label, object_class).data[0]
 
 
+
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=log_step)
+    logger.add_scalar_value("(CH-CNN) Viewpoint Loss/" + datasplit +"_total", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
+
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     print "Type Loss    : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step] , " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-
-    logger.add_scalar_value(datasplit +"_loss_azim",  epoch_loss_a / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_elev",  epoch_loss_e / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_tilt",  epoch_loss_t / total_step, step=log_step)
-    logger.add_scalar_value(datasplit +"_loss_total",  (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=log_step)
-
 
 def save_checkpoint(model, optimizer, curr_epoch, curr_step, args, curr_loss, curr_wacc, filename):
     """
@@ -394,74 +410,90 @@ def to_var(x, volatile=False):
         x = x.cuda()
     return Variable(x, volatile=volatile)
 
-def get_data_loaders(dataset, batch_size, num_workers):
-    # Get dataset information
-    if util.LMDB_data_path == None:
-        print "Error: LMDB data dataset path is not set. Set it in util.py"
-        exit()
-
-    if dataset == "syn":
-        dataset_root = os.path.join(util.LMDB_data_path, 'syn')
-        train_set    = KP_Dataset(dataset_root, 'train', flip = False )
-        test_set     = KP_Dataset(dataset_root, 'test', flip = False)
-    elif dataset == "pascal":
-        dataset_root = os.path.join(util.LMDB_data_path, 'pascal')
-        train_set = KP_Dataset(dataset_root, 'train', flip = False)
-        test_set  = KP_Dataset(dataset_root, 'test', flip = False)
-    else:
-        print "Error: Dataset argument not recognized. Set to either pascal or syn."
-        exit()
-
-
-    data_loader = torch.utils.data.DataLoader(dataset=train_set,
-                                              batch_size=batch_size,
-                                              shuffle=True,
-                                              num_workers=num_workers)
-
-    eval_data_loader = torch.utils.data.DataLoader( dataset=test_set,
-                                                    batch_size=batch_size,
-                                                    num_workers=num_workers)
-
-    return data_loader, eval_data_loader
+# def get_data_loaders(dataset, batch_size, num_workers):
+#     # Get dataset information
+#     if Paths.LMDB_data_path == None:
+#         print "Error: LMDB data dataset path is not set. Set it in Paths.py"
+#         exit()
+#
+#     if dataset == "syn":
+#         dataset_root = os.path.join(Paths.LMDB_data_path, 'syn')
+#         train_set    = KP_Dataset(dataset_root, 'train', flip = args.flip )
+#         test_set     = KP_Dataset(dataset_root, 'test', flip = False)
+#     elif dataset == "pascal":
+#         dataset_root = os.path.join(Paths.LMDB_data_path, 'pascal')
+#         train_set = KP_Dataset(dataset_root, 'train', flip = args.flip)
+#         test_set  = KP_Dataset(dataset_root, 'test', flip = False)
+#     elif dataset == "syn_new":
+#         csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_train_image_keypoint_info.csv'
+#         csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_test_image_keypoint_info.csv'
+#         train_set = Synthetic_Dataset(csv_train, flip = args.flip)
+#         test_set  = Synthetic_Dataset(csv_test,  flip = False)
+#     elif dataset == "pascal_new":
+#         csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_train_image_keypoint_info.csv'
+#         csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_test_image_keypoint_info.csv'
+#         train_set = Pascal_Dataset(csv_train, flip = args.flip)
+#         test_set  = Pascal_Dataset(csv_test,  flip = False)
+#     else:
+#         print "Error: Dataset argument not recognized. Set to either pascal or syn."
+#         exit()
+#
+#
+#     data_loader = torch.utils.data.DataLoader(dataset=train_set,
+#                                               batch_size=batch_size,
+#                                               shuffle=True,
+#                                               num_workers=num_workers)
+#
+#     eval_data_loader = torch.utils.data.DataLoader( dataset=test_set,
+#                                                     batch_size=batch_size,
+#                                                     num_workers=num_workers)
+#
+#     return data_loader, eval_data_loader
 
 if __name__ == '__main__':
 
-    root_dir        = os.path.dirname(os.path.abspath(__file__))
-    experiment_dir  = os.path.join(root_dir, 'experiments')
 
     parser = argparse.ArgumentParser()
 
     # logging parameters
     parser.add_argument('--save_epoch',      type=int , default=2)
     parser.add_argument('--eval_epoch',      type=int , default=5)
-    parser.add_argument('--eval_step',      type=int , default=5)
+    parser.add_argument('--eval_step',       type=int , default=100)
     parser.add_argument('--log_rate',        type=int, default=10)
     parser.add_argument('--num_workers',     type=int, default=7)
 
     # training parameters
     parser.add_argument('--num_epochs',      type=int, default=100)
     parser.add_argument('--batch_size',      type=int, default=128)
-    parser.add_argument('--learning_rate',   type=float, default=0.0001)
+    parser.add_argument('--lr',   type=float, default=0.0001)
     parser.add_argument('--optimizer',       type=str,default='adam')
+    parser.add_argument('--batch_norm',      action="store_true",default=False)
 
     # experiment details
     parser.add_argument('--dataset',         type=str, default='pascal')
     parser.add_argument('--model',           type=str, default='render')
     parser.add_argument('--experiment_name', type=str, default=None)
+    parser.add_argument('--machine',         type=str, default='z')
     parser.add_argument('--evaluate_only',   action="store_true",default=False)
+    parser.add_argument('--evaluate_train',  action="store_true",default=False)
+    parser.add_argument('--flip',            action="store_true",default=False)
 
     args = parser.parse_args()
 
-    args.experiment_path = os.path.join(experiment_dir, 'experiment_' + time.strftime("%m-%d_%H-%M-%S") + "_" + args.experiment_name)
+
+    root_dir                    = os.path.dirname(os.path.abspath(__file__))
+    experiment_result_dir       = os.path.join(root_dir, os.path.join('experiments',args.dataset))
+    args.full_experiment_name   = ("exp_%s_%s_%s" % ( time.strftime("%m_%d_%H_%M_%S"), args.dataset, args.experiment_name) )
+    args.experiment_path        = os.path.join(experiment_result_dir, args.full_experiment_name)
     args.best_loss      = sys.float_info.max
     args.best_wacc      = 0.
     args.num_classes    = 12
 
-    if args.experiment_name == None:
-        args.experiment_name = ('%s_%s_%s_flip-%s'%(args.optimizer,
-                                                    str(args.learning_rate),
-                                                    args.model,
-                                                    args.flip) )
+    # if args.experiment_name == None:
+    #     args.experiment_name = ('%s_%s_%s_flip-%s'%(args.optimizer,
+    #                                                 str(args.lr),
+    #                                                 args.model,
+    #                                                 args.flip) )
 
     # Create model directory
     if not os.path.exists(experiment_dir):

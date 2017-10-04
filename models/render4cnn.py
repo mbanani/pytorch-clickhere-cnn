@@ -11,7 +11,7 @@ import numpy as np
 
 
 class render4cnn(nn.Module):
-    def __init__(self, train=True, finetune=False, weights = None, weights_path = None):
+    def __init__(self, train=True, finetune=False, weights = None, weights_path = None, batch_norm = False):
         super(render4cnn, self).__init__()
 
         # Normalization layers
@@ -82,9 +82,9 @@ class render4cnn(nn.Module):
             state_dict = np.load(weights_path).item()
 
             # Convert parameters to torch tensors
-            for key in npy_dict.keys():
-                state_dict[key]['weight'] = torch.from_numpy(npy_dict[key]['weight'])
-                state_dict[key]['bias']   = torch.from_numpy(npy_dict[key]['bias'])
+            for key in state_dict.keys():
+                state_dict[key]['weight'] = torch.from_numpy(state_dict[key]['weight'])
+                state_dict[key]['bias']   = torch.from_numpy(state_dict[key]['bias'])
 
 
             conv1.weight.data.copy_(state_dict['conv1']['weight'])
@@ -111,26 +111,37 @@ class render4cnn(nn.Module):
             tilt.bias.data.copy_(state_dict['fc-tilt']['bias'])
 
         # Define Network
-        self.conv4 = nn.Sequential( conv1,
-                                    relu1,
-                                    pool1,
-                                    norm1,
-                                    conv2,
-                                    relu2,
-                                    pool2,
-                                    norm2,
-                                    conv3,
-                                    relu3,
-                                    conv4,
-                                    relu4)
-
-        self.conv5 = nn.Sequential(conv5, relu5, pool5)
+        if batch_norm:
+            bn3 = nn.BatchNorm2d(384)
+            bn4 = nn.BatchNorm2d(384)
+            bn5 = nn.BatchNorm2d(256)
+            bn6 = nn.BatchNorm2d(4096)
+            bn7 = nn.BatchNorm2d(4096)
 
 
-        if train:
-            self.infer = nn.Sequential(fc6, relu6, drop6, fc7, relu7, drop7)
+            self.conv4 = nn.Sequential( conv1,      relu1, pool1, norm1,
+                                        conv2,      relu2, pool2, norm2,
+                                        conv3,  relu3, conv4, relu4)
+                                        # conv3, bn3, relu3,
+                                        # conv4, bn4, relu4)
+
+            self.conv5 = nn.Sequential( conv5, bn5, relu5, pool5)
+
+            # self.infer = nn.Sequential( fc6,   bn6, relu6, drop6,
+            #                             fc7,   bn7, relu7, drop7)
+            self.infer = nn.Sequential( fc6,   bn6, relu6, drop6,
+                                        fc7,        relu7, drop7)
+
         else:
-            self.infer = nn.Sequential(fc6, relu6, fc7, relu7)
+            self.conv4 = nn.Sequential( conv1, relu1, pool1, norm1,
+                                        conv2, relu2, pool2, norm2,
+                                        conv3, relu3,
+                                        conv4, relu4)
+
+            self.conv5 = nn.Sequential( conv5,  relu5,  pool5)
+
+            self.infer = nn.Sequential( fc6,    relu6,  drop6,
+                                        fc7,    relu7,  drop7)
 
         if finetune:
             self.conv4.requires_grad = False

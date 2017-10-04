@@ -12,7 +12,7 @@ If you have any questions, please email me at mbanani@umich.edu.
 
 ### Generating Data
 
-The LMDB data (not the actual LMDBs) have to be generated for both the Synthetic and Pascal datasets as described [here](https://github.com/rszeto/click-here-cnn/blob/master/README.md#generating-training-data). Once the LMDB data has been generated, the path to the lmdb_data folder should be set in util.py.
+The LMDB data (not the actual LMDBs) have to be generated for both the Synthetic and Pascal datasets as described [here](https://github.com/rszeto/click-here-cnn/blob/master/README.md#generating-training-data). Once the LMDB data has been generated, the path to the lmdb_data folder should be set in PATHS.py
 
 Note: When generating the data, please edit get_job_key() function in generate_lmdb_data.py as shown below. This edit allows the lmdb keys to have information about the bounding box, which allows us to know why object in the image does the key_point belong to.
 
@@ -53,7 +53,7 @@ Assuming that you already have the data, you need the following dependencies to 
 
 ### Performing Inference
 
-After getting the data, downloading the weights, and setting the paths in util.py, you can run inference using Render For CNN and Clickhere CNN on the 3 classes (bus, car, and motorbike) by running the following command
+After getting the data, downloading the weights, and setting the paths in PATHS.py, you can run inference using Render For CNN and Clickhere CNN on the 3 classes (bus, car, and motorbike) by running the following command
 
          python train_viewpoint.py --model pretrained_render --dataset pascal --evaluate_only
          python train_viewpoint.py --model pretrained_clickhere --dataset pascal --evaluate_only
