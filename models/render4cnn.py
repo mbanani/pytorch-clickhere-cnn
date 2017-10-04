@@ -82,9 +82,9 @@ class render4cnn(nn.Module):
             state_dict = np.load(weights_path).item()
 
             # Convert parameters to torch tensors
-            for key in npy_dict.keys():
-                state_dict[key]['weight'] = torch.from_numpy(npy_dict[key]['weight'])
-                state_dict[key]['bias']   = torch.from_numpy(npy_dict[key]['bias'])
+            for key in state_dict.keys():
+                state_dict[key]['weight'] = torch.from_numpy(state_dict[key]['weight'])
+                state_dict[key]['bias']   = torch.from_numpy(state_dict[key]['bias'])
 
 
             conv1.weight.data.copy_(state_dict['conv1']['weight'])
