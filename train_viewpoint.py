@@ -10,8 +10,8 @@ import torch
 from torch.autograd import Variable
 
 from utils          import ViewpointLoss, evaluate_performance, Logger, Paths
-from datasets       import KP_Dataset, Pascal_Dataset, Synthetic_Dataset
-from models         import render4cnn, clickhere_cnn
+from utils          import get_data_loaders
+from models         import render4cnn, clickhere_cnn, vgg_tm
 # from pycrayon       import CrayonClient
 
 
@@ -19,17 +19,18 @@ def main(args):
     initialization_time = time.time()
 
     # Define Logger
-    exp_log_name = ("exp_%s_%s_%s" % ( time.strftime("%d_%m_%H_%M_%S"), args.dataset, args.experiment_name) )
-    # cc = CrayonClient("focus.eecs.umich.edu")
-    # curr_logger = cc.create_experiment( exp_log_name )
+    log_name    = args.full_experiment_name
     curr_logger = Logger(os.path.join(Paths.tensorboard_logdir, log_name))
 
-
+    # log_name = ("exp_%s_%s_%s" % ( time.strftime("%d_%m_%H_%M_%S"), args.dataset, args.experiment_name) )
+    # cc = CrayonClient("focus.eecs.umich.edu")
+    # curr_logger = cc.create_experiment( exp_log_name )
 
     print "#############  Read in Database   ##############"
     data_loader, eval_data_loader = get_data_loaders(dataset = args.dataset,
                                                      batch_size = args.batch_size,
-                                                     num_workers = args.num_workers)
+                                                     num_workers = args.num_workers,
+                                                     machine = args.machine)
 
     print "#############  Initiate Model     ##############"
     if args.model == 'render':
@@ -51,6 +52,12 @@ def main(args):
             print "Error: Weights path for pretrained clickhere cannot be None. Set it in Paths.py."
             exit()
         model = clickhere_cnn(render4cnn(batch_norm = args.batch_norm), weights_path = Paths.clickhere_weights)
+
+    elif args.model == 'pretrained_vgg':
+        if Paths.vgg_weights == None:
+            print "Error: Weights path for pretrained clickhere cannot be None. Set it in Paths.py."
+            exit()
+        model = vgg_tm(weights_path = Paths.vgg_weights)
 
     else:
         print "Error: unknown model choice. Exiting."
@@ -403,50 +410,48 @@ def to_var(x, volatile=False):
         x = x.cuda()
     return Variable(x, volatile=volatile)
 
-def get_data_loaders(dataset, batch_size, num_workers):
-    # Get dataset information
-    if Paths.LMDB_data_path == None:
-        print "Error: LMDB data dataset path is not set. Set it in Paths.py"
-        exit()
-
-    if dataset == "syn":
-        dataset_root = os.path.join(Paths.LMDB_data_path, 'syn')
-        train_set    = KP_Dataset(dataset_root, 'train', flip = args.flip )
-        test_set     = KP_Dataset(dataset_root, 'test', flip = False)
-    elif dataset == "pascal":
-        dataset_root = os.path.join(Paths.LMDB_data_path, 'pascal')
-        train_set = KP_Dataset(dataset_root, 'train', flip = args.flip)
-        test_set  = KP_Dataset(dataset_root, 'test', flip = False)
-    elif dataset == "syn_new":
-        csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_train_image_keypoint_info.csv'
-        csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_test_image_keypoint_info.csv'
-        train_set = Synthetic_Dataset(csv_train, flip = args.flip)
-        test_set  = Synthetic_Dataset(csv_test,  flip = False)
-    elif dataset == "pascal_new":
-        csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_train_image_keypoint_info.csv'
-        csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_test_image_keypoint_info.csv'
-        train_set = Pascal_Dataset(csv_train, flip = args.flip)
-        test_set  = Pascal_Dataset(csv_test,  flip = False)
-    else:
-        print "Error: Dataset argument not recognized. Set to either pascal or syn."
-        exit()
-
-
-    data_loader = torch.utils.data.DataLoader(dataset=train_set,
-                                              batch_size=batch_size,
-                                              shuffle=True,
-                                              num_workers=num_workers)
-
-    eval_data_loader = torch.utils.data.DataLoader( dataset=test_set,
-                                                    batch_size=batch_size,
-                                                    num_workers=num_workers)
-
-    return data_loader, eval_data_loader
+# def get_data_loaders(dataset, batch_size, num_workers):
+#     # Get dataset information
+#     if Paths.LMDB_data_path == None:
+#         print "Error: LMDB data dataset path is not set. Set it in Paths.py"
+#         exit()
+#
+#     if dataset == "syn":
+#         dataset_root = os.path.join(Paths.LMDB_data_path, 'syn')
+#         train_set    = KP_Dataset(dataset_root, 'train', flip = args.flip )
+#         test_set     = KP_Dataset(dataset_root, 'test', flip = False)
+#     elif dataset == "pascal":
+#         dataset_root = os.path.join(Paths.LMDB_data_path, 'pascal')
+#         train_set = KP_Dataset(dataset_root, 'train', flip = args.flip)
+#         test_set  = KP_Dataset(dataset_root, 'test', flip = False)
+#     elif dataset == "syn_new":
+#         csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_train_image_keypoint_info.csv'
+#         csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_test_image_keypoint_info.csv'
+#         train_set = Synthetic_Dataset(csv_train, flip = args.flip)
+#         test_set  = Synthetic_Dataset(csv_test,  flip = False)
+#     elif dataset == "pascal_new":
+#         csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_train_image_keypoint_info.csv'
+#         csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_test_image_keypoint_info.csv'
+#         train_set = Pascal_Dataset(csv_train, flip = args.flip)
+#         test_set  = Pascal_Dataset(csv_test,  flip = False)
+#     else:
+#         print "Error: Dataset argument not recognized. Set to either pascal or syn."
+#         exit()
+#
+#
+#     data_loader = torch.utils.data.DataLoader(dataset=train_set,
+#                                               batch_size=batch_size,
+#                                               shuffle=True,
+#                                               num_workers=num_workers)
+#
+#     eval_data_loader = torch.utils.data.DataLoader( dataset=test_set,
+#                                                     batch_size=batch_size,
+#                                                     num_workers=num_workers)
+#
+#     return data_loader, eval_data_loader
 
 if __name__ == '__main__':
 
-    root_dir        = os.path.dirname(os.path.abspath(__file__))
-    experiment_dir  = os.path.join(root_dir, 'experiments')
 
     parser = argparse.ArgumentParser()
 
@@ -468,22 +473,27 @@ if __name__ == '__main__':
     parser.add_argument('--dataset',         type=str, default='pascal')
     parser.add_argument('--model',           type=str, default='render')
     parser.add_argument('--experiment_name', type=str, default=None)
+    parser.add_argument('--machine',         type=str, default='z')
     parser.add_argument('--evaluate_only',   action="store_true",default=False)
     parser.add_argument('--evaluate_train',  action="store_true",default=False)
     parser.add_argument('--flip',            action="store_true",default=False)
 
     args = parser.parse_args()
 
-    args.experiment_path = os.path.join(experiment_dir, 'exp_'+ args.dataset + "_" + time.strftime("%m-%d_%H-%M-%S") + "_" + args.experiment_name)
+
+    root_dir                    = os.path.dirname(os.path.abspath(__file__))
+    experiment_result_dir       = os.path.join(root_dir, os.path.join('experiments',args.dataset))
+    args.full_experiment_name   = ("exp_%s_%s_%s" % ( time.strftime("%m_%d_%H_%M_%S"), args.dataset, args.experiment_name) )
+    args.experiment_path        = os.path.join(experiment_result_dir, args.full_experiment_name)
     args.best_loss      = sys.float_info.max
     args.best_wacc      = 0.
     args.num_classes    = 12
 
-    if args.experiment_name == None:
-        args.experiment_name = ('%s_%s_%s_flip-%s'%(args.optimizer,
-                                                    str(args.lr),
-                                                    args.model,
-                                                    args.flip) )
+    # if args.experiment_name == None:
+    #     args.experiment_name = ('%s_%s_%s_flip-%s'%(args.optimizer,
+    #                                                 str(args.lr),
+    #                                                 args.model,
+    #                                                 args.flip) )
 
     # Create model directory
     if not os.path.exists(experiment_dir):
