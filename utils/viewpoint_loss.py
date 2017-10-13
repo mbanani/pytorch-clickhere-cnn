@@ -40,9 +40,8 @@ class ViewpointLoss(nn.Module):
             start_index = int(obj_classes[inst_id].data[0]) * self.class_period
             end_index   = start_index + self.class_period
             if self.mean:
-                loss -= (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index])).mean()
+                loss -= (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index] / preds[inst_id, start_index:end_index].abs().sum())).mean()
             else:
-                loss -= (labels[inst_id, start_index:end_index] * preds[inst_id, start_index:end_index].log()).mean() / preds[inst_id, start_index:end_index].sum()
+                loss -= (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index] / preds[inst_id, start_index:end_index].abs().sum())).sum()
 
-        loss = loss / batch_size
         return loss
