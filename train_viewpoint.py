@@ -489,15 +489,9 @@ if __name__ == '__main__':
     args.best_wacc      = 0.
     args.num_classes    = 12
 
-    # if args.experiment_name == None:
-    #     args.experiment_name = ('%s_%s_%s_flip-%s'%(args.optimizer,
-    #                                                 str(args.lr),
-    #                                                 args.model,
-    #                                                 args.flip) )
-
     # Create model directory
-    if not os.path.exists(experiment_dir):
-        os.makedirs(experiment_dir)
+    if not os.path.exists(experiment_result_dir):
+        os.makedirs(experiment_result_dir)
     if not os.path.exists(args.experiment_path):
         os.makedirs(args.experiment_path)
 
