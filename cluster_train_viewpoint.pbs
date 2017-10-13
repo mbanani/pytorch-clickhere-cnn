@@ -1,4 +1,4 @@
-#PBS -N finetuneR4CNN_synthetic    # Name of the job
+#PBS -N finetuneR4CNN_synthetic_newLoss   # Name of the job
 #PBS -j oe                    # Join output and error in single file
 #PBS -l walltime=3:00:00:00   # walltime requested
 #PBS -l mem=16GB              # memory requested
@@ -36,18 +36,21 @@ echo Machine used is $MACHINE_NAME
 
 cd /z/home/mbanani/projects/pytorch-clickhere-cnn
 source set_env.sh
-python train_viewpoint.py --experiment_name $PBS_JOBNAME \
-                          --dataset syn_new      \
-                          --model pretrained_render \
-                          --eval_epoch  1       \
-                          --eval_step   1000    \
-                          --save_epoch  1     \
-                          --log_rate    10      \
-                          --num_workers 7       \
-                          --num_epochs  100     \
-                          --batch_size  192     \
-                          --lr          0.001   \
-                          --optimizer   adam    
+
+python train_viewpoint.py \
+--experiment_name $PBS_JOBNAME \
+--model pretrained_render \
+--dataset syn             \
+--eval_epoch  1           \
+--save_epoch  1           \
+--eval_step   1000        \
+--log_rate    10          \
+--num_workers 7           \
+--num_epochs  100         \
+--batch_size  192         \
+--machine     $(hostname) \
+--lr          0.001       \
+--optimizer   adam
 
 
 deactivate
