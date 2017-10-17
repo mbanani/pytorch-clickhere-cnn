@@ -12,7 +12,6 @@ from torch.autograd import Variable
 from utils          import ViewpointLoss, evaluate_performance, Logger, Paths
 from utils          import get_data_loaders
 from models         import render4cnn, clickhere_cnn, vgg_tm
-# from pycrayon       import CrayonClient
 
 
 def main(args):
@@ -21,10 +20,6 @@ def main(args):
     # Define Logger
     log_name    = args.full_experiment_name
     curr_logger = Logger(os.path.join(Paths.tensorboard_logdir, log_name))
-
-    # log_name = ("exp_%s_%s_%s" % ( time.strftime("%d_%m_%H_%M_%S"), args.dataset, args.experiment_name) )
-    # cc = CrayonClient("focus.eecs.umich.edu")
-    # curr_logger = cc.create_experiment( exp_log_name )
 
     print "#############  Read in Database   ##############"
     data_loader, eval_data_loader = get_data_loaders(dataset = args.dataset,
@@ -101,15 +96,7 @@ def main(args):
                                               criterion = crit,
                                               log_step = epoch * total_step,
                                               logger=curr_logger)
-
-        # else:
-        #     model.eval()
-        #     _ = eval_loss(  model,
-        #                     eval_data_loader,
-        #                     criterion = crit,
-        #                     log_step = epoch * total_step,
-        #                     logger=curr_logger)
-
+        
         if args.evaluate_only:
             exit()
 
@@ -410,45 +397,6 @@ def to_var(x, volatile=False):
         x = x.cuda()
     return Variable(x, volatile=volatile)
 
-# def get_data_loaders(dataset, batch_size, num_workers):
-#     # Get dataset information
-#     if Paths.LMDB_data_path == None:
-#         print "Error: LMDB data dataset path is not set. Set it in Paths.py"
-#         exit()
-#
-#     if dataset == "syn":
-#         dataset_root = os.path.join(Paths.LMDB_data_path, 'syn')
-#         train_set    = KP_Dataset(dataset_root, 'train', flip = args.flip )
-#         test_set     = KP_Dataset(dataset_root, 'test', flip = False)
-#     elif dataset == "pascal":
-#         dataset_root = os.path.join(Paths.LMDB_data_path, 'pascal')
-#         train_set = KP_Dataset(dataset_root, 'train', flip = args.flip)
-#         test_set  = KP_Dataset(dataset_root, 'test', flip = False)
-#     elif dataset == "syn_new":
-#         csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_train_image_keypoint_info.csv'
-#         csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/syn_test_image_keypoint_info.csv'
-#         train_set = Synthetic_Dataset(csv_train, flip = args.flip)
-#         test_set  = Synthetic_Dataset(csv_test,  flip = False)
-#     elif dataset == "pascal_new":
-#         csv_train = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_train_image_keypoint_info.csv'
-#         csv_test  = '/z/home/mbanani/click-here-cnn/data/image_keypoint_info/pascal_test_image_keypoint_info.csv'
-#         train_set = Pascal_Dataset(csv_train, flip = args.flip)
-#         test_set  = Pascal_Dataset(csv_test,  flip = False)
-#     else:
-#         print "Error: Dataset argument not recognized. Set to either pascal or syn."
-#         exit()
-#
-#
-#     data_loader = torch.utils.data.DataLoader(dataset=train_set,
-#                                               batch_size=batch_size,
-#                                               shuffle=True,
-#                                               num_workers=num_workers)
-#
-#     eval_data_loader = torch.utils.data.DataLoader( dataset=test_set,
-#                                                     batch_size=batch_size,
-#                                                     num_workers=num_workers)
-#
-#     return data_loader, eval_data_loader
 
 if __name__ == '__main__':
 
