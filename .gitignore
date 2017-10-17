@@ -1,6 +1,7 @@
 experiments
 set_env.sh
 trash
+cluster*
 *.npy
 
 # Generated Ignores
