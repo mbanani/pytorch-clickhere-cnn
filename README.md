@@ -2,15 +2,26 @@
 
 ## Introduction
 
-This is a [PyTorch](http://pytorch.org) implementation of [Clickhere CNN](https://github.com/rszeto/click-here-cnn) and [Render for CNN](https://github.com/shapenet/RenderForCNN).
+This is a [PyTorch](http://pytorch.org) implementation of [Clickhere CNN](https://github.com/rszeto/click-here-cnn)
+and [Render for CNN](https://github.com/shapenet/RenderForCNN).
 
-We currently provide the model, converted weights, dataset classes, and training/evaluation scripts. This implementation also includes an implementation of the Geometric Structure Aware loss function first mentioned in Render For CNN. The dataset classes require the datasets used by Clickhere CNN and RenderForCNN, which makes this implementation suffer from the same storage difficulties reported in [Clickhere CNN](https://github.come/rszeto/click-here-cnn). We are currently revising the dataset generation and storage, and will provide a more storage-efficient implementation soon.
-
+We currently provide the model, converted weights, dataset classes, and training/evaluation scripts.
+This implementation also includes an implementation of the Geometric Structure Aware loss function first mentioned in Render For CNN.
 If you have any questions, please email me at mbanani@umich.edu.
 
 ## Running the code
 
-### Generating Data
+### Generating Data (CSV file)
+
+We currently rely on the csv files created by the dataset generation process described
+[here](https://github.com/rszeto/click-here-cnn/blob/master/README.md#generating-training-data).
+This allows the code to require significantly less storage since it generates the key-point maps
+at training time. We plan on adding more code that generates the csv files soon.
+
+
+### Generating Data (LMDB data)
+The method below is still supported by the dataset wrapper KP_Dataset.py, however, it is
+not recommended as it requires a significant amount of storage.
 
 The LMDB data (not the actual LMDBs) have to be generated for both the Synthetic and Pascal datasets as described [here](https://github.com/rszeto/click-here-cnn/blob/master/README.md#generating-training-data). Once the LMDB data has been generated, the path to the lmdb_data folder should be set in PATHS.py
 
@@ -40,7 +51,12 @@ Note: When generating the data, please edit get_job_key() function in generate_l
 
 ### Pretrained weights
 
-We have converted the RenderForCNN and Clickhere model weights from caffe models, which can be downloaded here ([Render For CNN weights](umich.edu/~mbanani/clickhere_weights/render4cnn.pth), [Clickhere CNN weights](umich.edu/~mbanani/clickhere_weights/ch_cnn.npy)). The converted models achieve comparable performance to the Caffe for the Render For CNN model, however, there is a larger error observed for Clickhere CNN. We are currently training the models using PyTorch, and will upload the new models soon.
+We have converted the RenderForCNN and Clickhere model weights from caffe models,
+which can be downloaded here ([Render For CNN weights](umich.edu/~mbanani/clickhere_weights/render4cnn.pth),
+[Clickhere CNN weights](umich.edu/~mbanani/clickhere_weights/ch_cnn.npy)).
+The converted models achieve comparable performance to the Caffe for the Render For CNN model,
+however, there is a larger error observed for Clickhere CNN.
+We are currently training the models using PyTorch, and will upload the new models soon.
 
 ### Dependencies
 
@@ -48,7 +64,7 @@ Assuming that you already have the data, you need the following dependencies to 
 * [PyTorch 0.2](http://pytorch.org) - Both PyTorch and Torch Vision
 * [SciPy](https://www.scipy.org/)
 * [pandas](http://pandas.pydata.org/)
-* [PyCrayon](https://github.com/torrvision/crayon)
+* [Tensorflow](https://www.tensorflow.org/versions/) - For Tensorboard logging
 
 
 ### Performing Inference
