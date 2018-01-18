@@ -3,9 +3,8 @@ set_env.sh
 trash
 cluster*
 *.npy
-data
 model_weights
-
+*.pkl
 
 # Generated Ignores
 # Byte-compiled / optimized / DLL files
