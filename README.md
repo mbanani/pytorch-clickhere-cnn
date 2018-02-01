@@ -3,14 +3,14 @@
 
 ## To Do
 
-    - [x] Convert all links to relative paths!
-    - [ ] Include corrected links to weights! (check!)
-    - [ ] Get RenderForCNN and ClickHere Running (without regards to accuracy)
-    - [ ] Test suspected modification to map generation (flipping X axis)
-    - [ ] Update README to reflect current content
-    - [ ] Fix Loss Function to match what was in the r4cnn paper (ignore what their code actually did for now -- avoid normalization)
-    - [ ] Normalize Class Naming methodology (Capital vs normal .. )
-    - [ ] Try to resolve dependence on util .. be more systematic about my imports!
+- [x] Convert all links to relative paths!
+- [ ] Include corrected links to weights! (check!)
+- [ ] Get RenderForCNN and ClickHere Running (without regards to accuracy)
+- [ ] Test suspected modification to map generation (flipping X axis)
+- [ ] Update README to reflect current content
+- [ ] Fix Loss Function to match what was in the r4cnn paper (ignore what their code actually did for now -- avoid normalization)
+- [ ] Normalize Class Naming methodology (Capital vs normal .. )
+- [ ] Try to resolve dependence on util .. be more systematic about my imports!
 
 ## Introduction
 
