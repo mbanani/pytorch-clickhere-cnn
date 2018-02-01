@@ -1,7 +1,7 @@
 tensorboard_logdir = '/z/home/mbanani/tensorboard_logs'
-render4cnn_weights = '/z/home/mbanani/projects/pytorch-clickhere/model_weights/render4cnn.pth'
-render4cnn_weights = '/z/home/mbanani/projects/pytorch-clickhere/model_weights/ryan_render.npy'
-clickhere_weights  = '/z/home/mbanani/projects/pytorch-clickhere/model_weights/ch_cnn.npy'
-vgg_weights        = '/z/home/mbanani/projects/pytorch-clickhere/model_weights/vggJointVps.npy'
 
-# LMDB_data_path     = '/z/home/mbanani/click-here-cnn/data/lmdb_data'
+root_dir                = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+render4cnn_weights      =  os.path.join(root_dir, 'model_weights/render4cnn.pth')
+ft-render4cnn_weights   =  os.path.join(root_dir, 'model_weights/ryan_render.npy')
+clickhere_weights       =  os.path.join(root_dir, 'model_weights/ch_cnn.npy')
