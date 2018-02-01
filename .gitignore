@@ -5,6 +5,7 @@ cluster*
 *.npy
 model_weights
 *.pkl
+old_stuff
 
 # Generated Ignores
 # Byte-compiled / optimized / DLL files

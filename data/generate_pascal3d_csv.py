@@ -6,18 +6,22 @@ from IPython import embed
 
 INFO_FILE_HEADER = 'imgPath,bboxTLX,bboxTLY,bboxBRX,bboxBRY,imgKeyptX,imgKeyptY,keyptClass,objClass,azimuthClass,elevationClass,rotationClass\n'
 
-synset_name_pairs = [   ('02691156', 'aeroplane'),
-                        ('02834778', 'bicycle'),
-                        ('02858304', 'boat'),
-                        ('02876657', 'bottle'),
-                        ('02924116', 'bus'),
+# synset_name_pairs = [   ('02691156', 'aeroplane'),
+#                         ('02834778', 'bicycle'),
+#                         ('02858304', 'boat'),
+#                         ('02876657', 'bottle'),
+#                         ('02924116', 'bus'),
+#                         ('02958343', 'car'),
+#                         ('03001627', 'chair'),
+#                         ('04379243', 'diningtable'),
+#                         ('03790512', 'motorbike'),
+#                         ('04256520', 'sofa'),
+#                         ('04468005', 'train'),
+#                         ('03211117', 'tvmonitor')]
+
+synset_name_pairs = [   ('02924116', 'bus'),
                         ('02958343', 'car'),
-                        ('03001627', 'chair'),
-                        ('04379243', 'diningtable'),
-                        ('03790512', 'motorbike'),
-                        ('04256520', 'sofa'),
-                        ('04468005', 'train'),
-                        ('03211117', 'tvmonitor')]
+                        ('03790512', 'motorbike')]
 
 KEYPOINT_TYPES = {
     'aeroplane'   : ['right_wing', 'tail', 'rudder_upper', 'noselanding',
@@ -103,8 +107,8 @@ def create_pascal_image_kp_csvs():
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
-    train_csv = os.path.join(data_dir, 'pascal3d_kp_train.csv')
-    valid_csv = os.path.join(data_dir, 'pascal3d_kp_valid.csv')
+    train_csv = os.path.join(data_dir, 'veh_pascal3d_kp_train.csv')
+    valid_csv = os.path.join(data_dir, 'veh_pascal3d_kp_valid.csv')
 
 
     info_file_train = open(train_csv, 'w')
@@ -331,5 +335,5 @@ def viewpointInfo2Str(fullImagePath, bbox, viewptLabel):
     )
 
 if __name__ == '__main__':
-    # create_pascal_image_kp_csvs()
-    create_pascal_image_csvs(True)
+    create_pascal_image_kp_csvs()
+    # create_pascal_image_csvs(True)

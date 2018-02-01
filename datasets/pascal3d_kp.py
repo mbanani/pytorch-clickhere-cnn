@@ -14,49 +14,38 @@ from IPython        import embed
 
 
 class pascal3d_kp(torch.utils.data.Dataset):
+
     """
         Construct a Pascal Dataset.
         Inputs:
             csv_path    path containing instance data
             augment     boolean for flipping images
     """
-    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, inception_transform = False, map_size=46):
+    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, map_size = 46):
+
+        assert transform           != None
 
         start_time = time.time()
+
+        # Load instance data from csv-file
+        im_paths, bbox, kp_loc, kp_cls, obj_cls, vp_labels = self.csv_to_instances(csv_path)
+        csv_length = len(im_paths)
 
         # dataset parameters
         self.root           = dataset_root
         self.loader         = self.pil_loader
-
-        # Load instance data from csv-file
-        im_paths, bbox, kp_loc, kp_cls, obj_cls, vp_labels = self.csv_to_instances(csv_path)
-
-        print "csv file length: ", len(im_paths)
-
-
-        self.im_paths   = im_paths
-        self.bbox       = bbox
-        self.kp_loc     = kp_loc
-        self.kp_cls     = kp_cls
-        self.obj_cls    = obj_cls
-        self.vp_labels  = vp_labels
-        self.flip       = [False] * len(im_paths)
-        self.img_size   = im_size
-        self.map_size   = map_size
-
-        # augment keypoints
-        # for i in range(0, len(im_paths)):
-        #     x0 = float(kp_loc[i][0] - bbox[i][0]) / float(bbox[i][2] - bbox[i][0])
-        #     x1 = float(kp_loc[i][1] - bbox[i][1]) / float(bbox[i][3] - bbox[i][1])
-        #     self.kp_loc[i][0] = x1
-        #     self.kp_loc[i][1] = x0
-
-
-        self.num_classes            = 12
-        self.num_instances          = len(self.im_paths)
-        assert transform           != None
-        self.transform              = transform
-        self.inception_transform    = inception_transform
+        self.im_paths       = im_paths
+        self.bbox           = bbox
+        self.kp_loc         = kp_loc
+        self.kp_cls         = kp_cls
+        self.obj_cls        = obj_cls
+        self.vp_labels      = vp_labels
+        self.flip           = [False] * len(im_paths)
+        self.img_size       = im_size
+        self.map_size       = map_size
+        self.num_classes    = 12
+        self.num_instances  = len(self.im_paths)
+        self.transform      = transform
 
         # Set weights for loss
         class_hist          = np.histogram(obj_cls, range(0, self.num_classes+1))[0]
@@ -64,16 +53,21 @@ class pascal3d_kp(torch.utils.data.Dataset):
         self.loss_weights   = mean_class_size / class_hist
 
         # Print out dataset stats
-        print "Dataset loaded in ", time.time() - start_time, " secs."
-        print "Dataset size: ", self.num_instances
+        print "================================"
+        print "Pascal3D (w/ Keypoints) Stats: "
+        print "CSV file length  : ", len(im_paths)
+        print "Dataset size     : ", self.num_instances
+        print "Loading time (s) : ", time.time() - start_time
 
-    def __getitem__(self, index):
-        """
+
+    """
+        __getitem__ method:
             Args:
             index (int): Index
             Returns:
             tuple: (image, target) where target is class_index of the target class.
-        """
+    """
+    def __getitem__(self, index):
 
         # Load and transform image
         if self.root == None:
@@ -95,76 +89,64 @@ class pascal3d_kp(torch.utils.data.Dataset):
                                             num_classes = self.num_classes)
 
 
-        # # Convert bounding box and kp to [0,1] range
-        # kp = str(kp_loc[0]) + ' and ' + str(kp_loc[1])
-
-        if self.inception_transform:
-            inc_bbox = self.get_inception_bbox(kp_loc, bbox)
-
-        else:
-            inc_bbox    = [0.0, 0.0, 1.0, 1.0]
-
-
-        img, kp_loc = self.loader(im_path, bbox, flip, inc_bbox, kp_loc)
-
-        if self.transform is not None:
-            img = self.transform(img)
+        # Load and transform image
+        img, kp_loc = self.loader(im_path, bbox, flip, kp_loc)
+        img = self.transform(img)
 
         # Generate keypoint map image, and kp class vector
-        kpc_vec         = np.zeros( (124) )
+        kpc_vec         = np.zeros( (34) )
         kpc_vec[kp_cls] = 1
+        kp_class        = torch.from_numpy(kpc_vec).float()
 
         kpm_map         = self.generate_kp_map_chebyshev(kp_loc, flip)
-
-        kp_class        = torch.from_numpy(kpc_vec).float()
         kp_map          = torch.from_numpy(kpm_map).float()
 
-        #TODO construct unique key for statistics -- only need to generate imid and year
-        # key_uid = _year + '_' + _imid + '_' + _objc + '_' + _bb
+        # construct unique key for statistics -- only need to generate imid and year
         _bb     = str(bbox[0]) + '-' + str(bbox[1]) + '-' + str(bbox[2]) + '-' + str(bbox[3])
         key_uid = self.im_paths[index] + '_'  + _bb + '_objc' + str(obj_cls) + '_kpc' + str(kp_cls)
 
-        # Load and transform label
         return img, azim, elev, tilt, obj_cls, kp_map, kp_class, key_uid
 
+    """
+        Retuns the Length of the dataset
+    """
     def __len__(self):
         return self.num_instances
 
-    def pil_loader(self, path, bbox, flip, inc_bbox, kp_loc):
+    """
+        Image loader
+        Inputs:
+            path        absolute image path
+            bbox        4-element tuple (x_min, y_min, x_max, y_max)
+            flip        boolean for flipping image horizontally
+            kp_loc      2-element tuple (x_loc, y_loc)
+    """
+    def pil_loader(self, path, bbox, flip, kp_loc):
         # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
         with open(path, 'rb') as f:
             with Image.open(f) as img:
+                # Calculate relative kp_loc position
+                kp_loc[0] = float(kp_loc[0]-bbox[0])/float(bbox[2]-bbox[0])
+                kp_loc[1] = float(kp_loc[1]-bbox[1])/float(bbox[3]-bbox[1])
+
+                # Convert to RGB, crop, and resize
                 img = img.convert('RGB')
-
-                if self.inception_transform:
-                    n_bbox = [0] * 4
-
-                    # bbox ordering left, upper, right , lower
-                    o_width     = bbox[2] - bbox[0]
-                    o_height    = bbox[3] - bbox[1]
-                    n_bbox[0] = bbox[0] + o_width * inc_bbox[0]
-                    n_bbox[2] = bbox[0] + o_width * inc_bbox[2]
-
-                    n_bbox[1] = bbox[1] + o_height * inc_bbox[1]
-                    n_bbox[3] = bbox[1] + o_height * inc_bbox[3]
-                else:
-                    n_bbox = bbox
-
-                kp_loc[0] = float(kp_loc[0]-n_bbox[0])/float(n_bbox[2]-n_bbox[0])
-                kp_loc[1] = float(kp_loc[1]-n_bbox[1])/float(n_bbox[3]-n_bbox[1])
-
-                img = img.crop(box=n_bbox)
-
+                img = img.crop(box=bbox)
                 img = img.resize( (self.img_size, self.img_size), Image.LANCZOS)
 
+                # TODO resizing as an experiment
+                # img = img.transpose(Image.FLIP_LEFT_RIGHT)
+
+                # flip image and keypoint if needed
                 if flip:
                     img = img.transpose(Image.FLIP_LEFT_RIGHT)
                     kp_loc[0] = 1.0 - kp_loc[0]
 
-
                 return img, kp_loc
 
-
+    """
+        Convert CSV file to instances
+    """
     def csv_to_instances(self, csv_path):
         # imgPath,bboxTLX,bboxTLY,bboxBRX,bboxBRY,imgKeyptX,imgKeyptY,keyptClass,objClass,azimuthClass,elevationClass,rotationClass
         # /z/.../datasets/pascal3d/Images/bus_pascal/2008_000032.jpg,5,117,488,273,9.186347,158.402214,1,4,1756,1799,1443
@@ -176,8 +158,10 @@ class pascal3d_kp(torch.utils.data.Dataset):
         del(data_split[0])
 
         image_paths = np.squeeze(data_split[0]).tolist()
+
         # if self.root != None:
         #     image_paths = [path.split('pascal3d/')[1] for path in image_paths]
+
         bboxes      = data_split[1].tolist()
         kp_loc      = data_split[2].tolist()
         kp_class    = np.squeeze(data_split[3]).tolist()
@@ -186,6 +170,10 @@ class pascal3d_kp(torch.utils.data.Dataset):
 
         return image_paths, bboxes, kp_loc, kp_class, obj_class, viewpoints
 
+
+    """
+        Augment dataset -- currently just duplicate it with a flipped version of each instance
+    """
     def augment(self):
         self.im_paths   = self.im_paths  + self.im_paths
         self.bbox       = self.bbox      + self.bbox
@@ -197,7 +185,10 @@ class pascal3d_kp(torch.utils.data.Dataset):
         assert len(self.flip) == len(self.im_paths)
         self.num_instances = len(self.im_paths)
 
-    def generate_kp_map_chebyshev(self, kp, flip):
+    """
+        Generate Chbyshev-based map given a keypoint location
+    """
+    def generate_kp_map_chebyshev(self, kp):
 
         assert kp[0] >= 0. and kp[0] <= 1., kp
         assert kp[1] >= 0. and kp[1] <= 1., kp
@@ -216,39 +207,14 @@ class pascal3d_kp(torch.utils.data.Dataset):
         kp_map = -2. * (kp_map - 0.5)
         return kp_map
 
-    def get_inception_bbox(self, kp_loc, bbox):
 
-        kp0 = float(kp_loc[0]-bbox[0])/float(bbox[2]-bbox[0])
-        kp1 = float(kp_loc[1]-bbox[1])/float(bbox[3]-bbox[1])
-
-        rand1 = np.random.rand()
-        rand2 = np.random.rand()
-        rand3 = np.random.rand()
-        # Aspect ratio between 2/3 and 3/2
-        width    = 0.4 + (0.6 * rand1)
-        aspect_ratio = (5. * rand2 + 4.)/6.
-        height   = width * aspect_ratio
-        # find ranges for x and y that top left corner for bbox can take as function of kps
-        # define bbox for inception defined on range 0,1
-        min_x = max(0.0, kp0 - (width/2.))
-        min_y = max(0.0, kp1 - (height/2.))
-        max_x = min(1.0, kp0 + (width/2.))
-        max_y = min(1.0, kp1 + (height/2.))
-
-        # inc_left    = 0.5 * (rand2 * min_x + rand3 * max_x)
-        # inc_upper   = 0.5 * (rand1 * min_y + rand3 * max_y)
-        #
-        # inc_bbox = tuple([inc_left, inc_upper, inc_left + width, inc_upper + height])
-        inc_bbox = tuple([min_x, min_y, max_x, max_y])
-
-
-
-        return inc_bbox
-
+    """
+        Generate a validation set and augment current instance to become (training - validation)
+    """
     def generate_validation(self, ratio = 0.1):
         assert ratio > (2.*self.num_classes/float(self.num_instances)) and ratio < 0.5
 
-        random.seed(a = 2741998)
+        random.seed(a = 223 )
 
         valid_class     = copy.deepcopy(self)
 
@@ -267,22 +233,22 @@ class pascal3d_kp(torch.utils.data.Dataset):
         train_size = len(train_instances)
         valid_size = len(valid_instances)
 
-        valid_class.im_paths        = [ self.im_paths[i]     for i in sorted(set_valid) ]
-        valid_class.bbox            = [ self.bbox[i]            for i in sorted(set_valid) ]
-        valid_class.kp_loc          = [ self.kp_loc[i]          for i in sorted(set_valid) ]
-        valid_class.kp_cls          = [ self.kp_cls[i]          for i in sorted(set_valid) ]
-        valid_class.obj_cls         = [ self.obj_cls[i]         for i in sorted(set_valid) ]
-        valid_class.vp_labels       = [ self.vp_labels[i]       for i in sorted(set_valid) ]
-        valid_class.flip            = [ self.flip[i]           for i in sorted(set_valid) ]
+        valid_class.im_paths        = [ self.im_paths[i]    for i in sorted(set_valid) ]
+        valid_class.bbox            = [ self.bbox[i]        for i in sorted(set_valid) ]
+        valid_class.kp_loc          = [ self.kp_loc[i]      for i in sorted(set_valid) ]
+        valid_class.kp_cls          = [ self.kp_cls[i]      for i in sorted(set_valid) ]
+        valid_class.obj_cls         = [ self.obj_cls[i]     for i in sorted(set_valid) ]
+        valid_class.vp_labels       = [ self.vp_labels[i]   for i in sorted(set_valid) ]
+        valid_class.flip            = [ self.flip[i]        for i in sorted(set_valid) ]
         valid_class.num_instances   = valid_size
 
-        self.im_paths            = [ self.im_paths[i]     for i in sorted(set_train) ]
-        self.bbox                = [ self.bbox[i]            for i in sorted(set_train) ]
-        self.kp_loc              = [ self.kp_loc[i]          for i in sorted(set_train) ]
-        self.kp_cls              = [ self.kp_cls[i]          for i in sorted(set_train) ]
-        self.obj_cls             = [ self.obj_cls[i]         for i in sorted(set_train) ]
-        self.vp_labels           = [ self.vp_labels[i]       for i in sorted(set_train) ]
-        self.flip                 = [ self.flip[i]           for i in sorted(set_train) ]
+        self.im_paths               = [ self.im_paths[i]    for i in sorted(set_train) ]
+        self.bbox                   = [ self.bbox[i]        for i in sorted(set_train) ]
+        self.kp_loc                 = [ self.kp_loc[i]      for i in sorted(set_train) ]
+        self.kp_cls                 = [ self.kp_cls[i]      for i in sorted(set_train) ]
+        self.obj_cls                = [ self.obj_cls[i]     for i in sorted(set_train) ]
+        self.vp_labels              = [ self.vp_labels[i]   for i in sorted(set_train) ]
+        self.flip                   = [ self.flip[i]        for i in sorted(set_train) ]
         self.num_instances       = train_size
 
         return valid_class

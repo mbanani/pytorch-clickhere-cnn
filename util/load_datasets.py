@@ -5,7 +5,7 @@ import torchvision.transforms   as transforms
 
 from datasets                   import pascal3d, pascal3d_kp
 
-def get_data_loaders(dataset, batch_size, num_workers, model, machine = 'z', num_classes = 12, flip = False, valid = 0.0, inception_transform = False, temperature = 1.0):
+def get_data_loaders(dataset, batch_size, num_workers, model, machine = 'z', num_classes = 12, flip = False, valid = 0.0, temperature = 1.0):
 
     image_size = 227
     train_transform   = transforms.Compose([
@@ -21,19 +21,19 @@ def get_data_loaders(dataset, batch_size, num_workers, model, machine = 'z', num
 
 
     if dataset == "pascal":
-        csv_train = '/z/home/mbanani/projects/viewpoint_estimation/data/pascal3d_train.csv'
-        csv_test  = '/z/home/mbanani/projects/viewpoint_estimation/data/pascal3d_valid.csv'
+        csv_train = '/z/home/mbanani/projects/pytorch-clickhere/data/pascal3d_train.csv'
+        csv_test  = '/z/home/mbanani/projects/pytorch-clickhere/data/pascal3d_valid.csv'
         data_root = '/z/home/mbanani/datasets/pascal3d'
 
         train_set = pascal3d(csv_train, dataset_root= data_root, transform = train_transform, im_size = image_size)
         test_set  = pascal3d(csv_test,  dataset_root= data_root, transform = test_transform,  im_size = image_size)
 
     elif dataset == "pascalKP":
-        csv_train = '/z/home/mbanani/projects/viewpoint_estimation/data/pascal3d_kp_train.csv'
-        csv_test  = '/z/home/mbanani/projects/viewpoint_estimation/data/pascal3d_kp_valid.csv'
+        csv_train = '/z/home/mbanani/projects/pytorch-clickhere/data/veh_pascal3d_kp_train.csv'
+        csv_test  = '/z/home/mbanani/projects/pytorch-clickhere/data/veh_pascal3d_kp_valid.csv'
         data_root = '/z/home/mbanani/datasets/pascal3d'
 
-        train_set = pascal3d_kp(csv_train, dataset_root= data_root, transform = train_transform, im_size = image_size, inception_transform = inception_transform)
+        train_set = pascal3d_kp(csv_train, dataset_root= data_root, transform = train_transform, im_size = image_size)
         test_set  = pascal3d_kp(csv_test,  dataset_root= data_root, transform = test_transform,  im_size = image_size)
 
 

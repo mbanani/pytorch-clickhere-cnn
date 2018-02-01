@@ -1,3 +1,2 @@
-from .KP_Dataset  import *
-from .Pascal_Dataset  import *
-from .Synthetic_Dataset  import *
+from .pascal3d              import *
+from .pascal3d_kp           import *

@@ -11,7 +11,7 @@ import torch
 
 from util                       import ViewpointLoss, Logger, Paths
 from util                       import get_data_loaders, vp_dict, kp_dict
-from models                     import inceptionView, inceptionCH
+from models                     import clickhere_cnn, render4cnn
 from util.torch_utils           import to_var, save_checkpoint
 from torch.optim.lr_scheduler   import MultiStepLR
 
@@ -26,13 +26,15 @@ def main(args):
                                                     model       = args.model,
                                                     flip        = args.flip,
                                                     num_classes = args.num_classes,
-                                                    inception_transform = args.inception_transform,
                                                     valid       = 0.1)
 
     print "#############  Initiate Model     ##############"
     if args.model == 'clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
         model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm))
+    if args.model == 'pretrained_clickhere':
+        assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
+        model = clickhere_cnn(render4cnn(), weights_path = Paths.clickhere_weights)
     else:
         assert False, "Error: unknown model choice."
 

@@ -5,7 +5,7 @@ from torch.autograd import Variable
 import numpy as np
 
 class clickhere_cnn(nn.Module):
-    def __init__(self, renderCNN, weights_path = None, train=True):
+    def __init__(self, renderCNN, weights_path = None):
         super(clickhere_cnn, self).__init__()
 
         # Image Stream
@@ -82,34 +82,23 @@ class clickhere_cnn(nn.Module):
         self.cls_linear  = nn.Sequential( kp_class )
         self.kp_softmax  = nn.Sequential( kp_fuse, nn.Softmax() )
 
-        if train:
-            self.infer = nn.Sequential(fc6, relu6, drop6, fc7, relu7, drop7)
-            self.fusion = nn.Sequential(fc8, relu8, drop8)
-        else:
-            self.infer = nn.Sequential(fc6, relu6, fc7, relu7)
-            self.fusion = nn.Sequential(fc8, relu8)
+        self.infer = nn.Sequential(fc6, relu6, drop6, fc7, relu7, drop7)
+        self.fusion = nn.Sequential(fc8, relu8, drop8)
 
         self.azim = nn.Sequential(azim )
         self.elev = nn.Sequential(elev)
         self.tilt = nn.Sequential(tilt)
 
         if weights_path == None:
-            self.init_weights(train)
+            self.init_weights()
 
 
-    def init_weights(self, train):
+    def init_weights(self):
 
-        # Initialize FC 6 and 7 weights
-        if train:
-            self.infer[0].weight.data.normal_(0.0, 0.01)
-            self.infer[0].bias.data.fill_(0)
-            self.infer[3].weight.data.normal_(0.0, 0.01)
-            self.infer[3].bias.data.fill_(0)
-        else:
-            self.infer[0].weight.data.normal_(0.0, 0.01)
-            self.infer[0].bias.data.fill_(0)
-            self.infer[2].weight.data.normal_(0.0, 0.01)
-            self.infer[2].bias.data.fill_(0)
+        self.infer[0].weight.data.normal_(0.0, 0.01)
+        self.infer[0].bias.data.fill_(0)
+        self.infer[3].weight.data.normal_(0.0, 0.01)
+        self.infer[3].bias.data.fill_(0)
 
         # Intialize weights for KP stream
         self.map_linear[0].weight.data.normal_(0.0, 0.01)
@@ -140,8 +129,8 @@ class clickhere_cnn(nn.Module):
 
         # Keypoint Stream
         # KP map scaling performed in dataset class
-        kp_map_pool  = self.pool_map(kp_map)
-        kp_map_flat  = kp_map_pool.view(kp_map_pool.size(0), 46*46)
+        # kp_map_pool  = self.pool_map(kp_map)
+        kp_map_flat  = kp_map.view(kp_map.size(0), 46*46)
         features_map = self.map_linear(kp_map_flat)
         features_cls = self.cls_linear(kp_class)
 

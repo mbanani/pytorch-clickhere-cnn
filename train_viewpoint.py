@@ -33,7 +33,8 @@ def main(args):
         model = render4cnn()
     elif args.model == 'pretrained_render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm)
+        # model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm)
+        model = render4cnn(weights = 'npy', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm)
     elif args.model == 'pretrained_vgg':
         assert Paths.vgg_weights != None, "Error: Set pretrained vgg weights path in util/Paths.py."
         model = vgg_tm(weights_path = Paths.vgg_weights)

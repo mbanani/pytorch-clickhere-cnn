@@ -24,6 +24,8 @@ class kp_dict(object):
             labels      = [labels]
 
         for i in range(0, len(unique_id)):
+            embed()
+            exit()
             image = unique_id[i].split('_objc')[0]
             obj_class   = int(unique_id[i].split('_objc')[1].split('_kpc')[0])
             kp_class    = int(unique_id[i].split('_objc')[1].split('_kpc')[1])
