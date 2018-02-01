@@ -6,6 +6,7 @@ cluster*
 model_weights
 *.pkl
 old_stuff
+test.py
 
 # Generated Ignores
 # Byte-compiled / optimized / DLL files
