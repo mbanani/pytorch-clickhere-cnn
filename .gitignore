@@ -7,6 +7,8 @@ cluster*
 *.pkl
 old_stuff
 test.py
+data/*.csv
+data/*.txt
 
 # Generated Ignores
 # Byte-compiled / optimized / DLL files
