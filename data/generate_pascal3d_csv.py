@@ -4,7 +4,7 @@ import scipy.io as spio
 
 from IPython import embed
 
-import util.Paths
+from util                       import Paths
 
 INFO_FILE_HEADER = 'imgPath,bboxTLX,bboxTLY,bboxBRX,bboxBRY,imgKeyptX,imgKeyptY,keyptClass,objClass,azimuthClass,elevationClass,rotationClass\n'
 
@@ -118,6 +118,18 @@ def create_pascal_image_kp_csvs(vehicles = False):
     else:
         train_csv = os.path.join(data_dir, 'pascal3d_kp_train.csv')
         valid_csv = os.path.join(data_dir, 'pascal3d_kp_valid.csv')
+        synset_name_pairs = [   ('02691156', 'aeroplane'),
+                                ('02834778', 'bicycle'),
+                                ('02858304', 'boat'),
+                                ('02876657', 'bottle'),
+                                ('02924116', 'bus'),
+                                ('02958343', 'car'),
+                                ('03001627', 'chair'),
+                                ('04379243', 'diningtable'),
+                                ('03790512', 'motorbike'),
+                                ('04256520', 'sofa'),
+                                ('04468005', 'train'),
+                                ('03211117', 'tvmonitor')]
 
     info_file_train = open(train_csv, 'w')
     info_file_train.write(INFO_FILE_HEADER)
