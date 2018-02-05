@@ -3,6 +3,7 @@ import torch.nn as nn
 import torchvision.models as models
 from torch.autograd import Variable
 import numpy as np
+from IPython import embed
 
 class clickhere_cnn(nn.Module):
     def __init__(self, renderCNN, weights_path = None):
@@ -43,7 +44,6 @@ class clickhere_cnn(nn.Module):
             for key in npy_dict.keys():
                 state_dict[key]['weight'] = torch.from_numpy(npy_dict[key]['weight'])
                 state_dict[key]['bias']   = torch.from_numpy(npy_dict[key]['bias'])
-
 
             self.conv4[0].weight.data.copy_(state_dict['conv1']['weight'])
             self.conv4[0].bias.data.copy_(state_dict['conv1']['bias'])
@@ -89,35 +89,35 @@ class clickhere_cnn(nn.Module):
         self.elev = nn.Sequential(elev)
         self.tilt = nn.Sequential(tilt)
 
-        if weights_path == None:
-            self.init_weights()
+        # if weights_path == None:
+        #     self.init_weights()
 
-
-    def init_weights(self):
-
-        self.infer[0].weight.data.normal_(0.0, 0.01)
-        self.infer[0].bias.data.fill_(0)
-        self.infer[3].weight.data.normal_(0.0, 0.01)
-        self.infer[3].bias.data.fill_(0)
-
-        # Intialize weights for KP stream
-        self.map_linear[0].weight.data.normal_(0.0, 0.01)
-        self.map_linear[0].bias.data.fill_(0)
-        self.cls_linear[0].weight.data.normal_(0.0, 0.01)
-        self.cls_linear[0].bias.data.fill_(0)
-        self.kp_softmax[0].weight.data.normal_(0.0, 0.01)
-        self.kp_softmax[0].bias.data.fill_(0)
-
-        # Initialize weights for fusion and inference
-        self.fusion[0].weight.data.normal_(0.0, 0.01)
-        self.fusion[0].bias.data.fill_(0)
-
-        self.azim[0].weight.data.normal_(0.0, 0.01)
-        self.azim[0].bias.data.fill_(0)
-        self.elev[0].weight.data.normal_(0.0, 0.01)
-        self.elev[0].bias.data.fill_(0)
-        self.tilt[0].weight.data.normal_(0.0, 0.01)
-        self.tilt[0].bias.data.fill_(0)
+    #
+    # def init_weights(self):
+    #
+    #     self.infer[0].weight.data.normal_(0.0, 0.01)
+    #     self.infer[0].bias.data.fill_(0)
+    #     self.infer[3].weight.data.normal_(0.0, 0.01)
+    #     self.infer[3].bias.data.fill_(0)
+    #
+    #     # Intialize weights for KP stream
+    #     self.map_linear[0].weight.data.normal_(0.0, 0.01)
+    #     self.map_linear[0].bias.data.fill_(0)
+    #     self.cls_linear[0].weight.data.normal_(0.0, 0.01)
+    #     self.cls_linear[0].bias.data.fill_(0)
+    #     self.kp_softmax[0].weight.data.normal_(0.0, 0.01)
+    #     self.kp_softmax[0].bias.data.fill_(0)
+    #
+    #     # Initialize weights for fusion and inference
+    #     self.fusion[0].weight.data.normal_(0.0, 0.01)
+    #     self.fusion[0].bias.data.fill_(0)
+    #
+    #     self.azim[0].weight.data.normal_(0.0, 0.01)
+    #     self.azim[0].bias.data.fill_(0)
+    #     self.elev[0].weight.data.normal_(0.0, 0.01)
+    #     self.elev[0].bias.data.fill_(0)
+    #     self.tilt[0].weight.data.normal_(0.0, 0.01)
+    #     self.tilt[0].bias.data.fill_(0)
 
 
     def forward(self, images, kp_map, kp_class):
@@ -129,8 +129,8 @@ class clickhere_cnn(nn.Module):
 
         # Keypoint Stream
         # KP map scaling performed in dataset class
-        # kp_map_pool  = self.pool_map(kp_map)
-        kp_map_flat  = kp_map.view(kp_map.size(0), 46*46)
+        # kp_map       = self.pool_map(kp_map)
+        kp_map_flat  = kp_map.view(kp_map.size(0), -1)
         features_map = self.map_linear(kp_map_flat)
         features_cls = self.cls_linear(kp_class)
 
@@ -145,7 +145,7 @@ class clickhere_cnn(nn.Module):
 
         # Attention -> Elt. wise product, then summation over x and y dims
         attention_mul   = features_kp * features_conv4
-        attention_kp    = attention_mul.sum(2).sum(2)
+        attention_kp    = attention_mul.sum(3).sum(2)
 
         # Concatenate fc7 and attended features
         features_fused = torch.cat([features_fc7, attention_kp], dim = 1)

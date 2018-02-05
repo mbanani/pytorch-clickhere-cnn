@@ -3,7 +3,7 @@ set_env.sh
 trash
 cluster*
 *.npy
-model_weights
+*.pth
 *.pkl
 old_stuff
 test.py

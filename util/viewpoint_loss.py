@@ -11,9 +11,11 @@ https://github.com/charlesq34/caffe-render-for-cnn/blob/view_prediction/
 import torch
 import torch.nn.functional as F
 from torch import nn
+import numpy as np
 
 class ViewpointLoss(nn.Module):
     def __init__(self, num_classes = 12, class_period = 360, mean = True, weights = None):
+        weights = None
         super(ViewpointLoss, self).__init__()
         self.num_classes = num_classes
         self.class_period = class_period

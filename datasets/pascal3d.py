@@ -85,7 +85,8 @@ class pascal3d(data.Dataset):
             img = self.transform(img)
 
         # Load and transform label
-        return img, azim, elev, tilt, obj_cls
+        # return img, azim, elev, tilt, obj_cls
+        return img, azim, elev, tilt, obj_cls, -1, -1, -1
 
     def __len__(self):
         return self.num_instances
@@ -109,9 +110,7 @@ class pascal3d(data.Dataset):
             with Image.open(f) as img:
                 img = img.convert('RGB')
 
-                # crop (TODO verify that it's the correct ordering!)
-                if bbox != None:
-                    img = img.crop(box=bbox)
+                img = img.crop(box=bbox)
 
                 # verify that imresize uses LANCZOS
                 img = img.resize( (self.im_size, self.im_size), Image.LANCZOS)

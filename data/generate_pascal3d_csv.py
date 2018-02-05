@@ -4,24 +4,22 @@ import scipy.io as spio
 
 from IPython import embed
 
+import util.Paths
+
 INFO_FILE_HEADER = 'imgPath,bboxTLX,bboxTLY,bboxBRX,bboxBRY,imgKeyptX,imgKeyptY,keyptClass,objClass,azimuthClass,elevationClass,rotationClass\n'
 
-# synset_name_pairs = [   ('02691156', 'aeroplane'),
-#                         ('02834778', 'bicycle'),
-#                         ('02858304', 'boat'),
-#                         ('02876657', 'bottle'),
-#                         ('02924116', 'bus'),
-#                         ('02958343', 'car'),
-#                         ('03001627', 'chair'),
-#                         ('04379243', 'diningtable'),
-#                         ('03790512', 'motorbike'),
-#                         ('04256520', 'sofa'),
-#                         ('04468005', 'train'),
-#                         ('03211117', 'tvmonitor')]
-
-synset_name_pairs = [   ('02924116', 'bus'),
+synset_name_pairs = [   ('02691156', 'aeroplane'),
+                        ('02834778', 'bicycle'),
+                        ('02858304', 'boat'),
+                        ('02876657', 'bottle'),
+                        ('02924116', 'bus'),
                         ('02958343', 'car'),
-                        ('03790512', 'motorbike')]
+                        ('03001627', 'chair'),
+                        ('04379243', 'diningtable'),
+                        ('03790512', 'motorbike'),
+                        ('04256520', 'sofa'),
+                        ('04468005', 'train'),
+                        ('03211117', 'tvmonitor')]
 
 KEYPOINT_TYPES = {
     'aeroplane'   : ['right_wing', 'tail', 'rudder_upper', 'noselanding',
@@ -78,17 +76,17 @@ KEYPOINTCLASS_INDEX_MAP = {}
 for i in range(len(KEYPOINT_CLASSES)):
     KEYPOINTCLASS_INDEX_MAP[KEYPOINT_CLASSES[i]] = i
 
-DATASET_SOURCES = ['pascal', 'imagenet']
-PASCAL3D_ROOT = '/z/home/mbanani/datasets/pascal3d'
-ANNOTATIONS_ROOT = os.path.join(PASCAL3D_ROOT, 'Annotations')
-IMAGES_ROOT = os.path.join(PASCAL3D_ROOT, 'Images')
+DATASET_SOURCES     = ['pascal', 'imagenet']
+PASCAL3D_ROOT       = Paths.pascal3d_root
+ANNOTATIONS_ROOT    = os.path.join(PASCAL3D_ROOT, 'Annotations')
+IMAGES_ROOT         = os.path.join(PASCAL3D_ROOT, 'Images')
 
 
 """
     Create pascal image kp dataset for all classes.
     Code adapted from (https://github.com/rszeto/click-here-cnn)
 """
-def create_pascal_image_kp_csvs():
+def create_pascal_image_kp_csvs(vehicles = False):
     # Generate train and test lists and store in file
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -107,9 +105,19 @@ def create_pascal_image_kp_csvs():
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
-    train_csv = os.path.join(data_dir, 'veh_pascal3d_kp_train.csv')
-    valid_csv = os.path.join(data_dir, 'veh_pascal3d_kp_valid.csv')
 
+    if vehicles:
+        train_csv = os.path.join(data_dir, 'veh_pascal3d_kp_train.csv')
+        valid_csv = os.path.join(data_dir, 'veh_pascal3d_kp_valid.csv')
+
+
+        synset_name_pairs = [   ('02924116', 'bus'),
+                                ('02958343', 'car'),
+                                ('03790512', 'motorbike')]
+
+    else:
+        train_csv = os.path.join(data_dir, 'pascal3d_kp_train.csv')
+        valid_csv = os.path.join(data_dir, 'pascal3d_kp_valid.csv')
 
     info_file_train = open(train_csv, 'w')
     info_file_train.write(INFO_FILE_HEADER)
@@ -336,4 +344,6 @@ def viewpointInfo2Str(fullImagePath, bbox, viewptLabel):
 
 if __name__ == '__main__':
     create_pascal_image_kp_csvs()
-    # create_pascal_image_csvs(True)
+    create_pascal_image_kp_csvs(vehicles = True)       # Just vehicles
+    create_pascal_image_csvs()
+    create_pascal_image_csvs(easy = True)              # Easy subset

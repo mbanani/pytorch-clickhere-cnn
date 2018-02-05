@@ -21,7 +21,7 @@ class pascal3d_kp(torch.utils.data.Dataset):
             csv_path    path containing instance data
             augment     boolean for flipping images
     """
-    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, map_size = 46):
+    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, map_size = 46, flip = False):
 
         assert transform           != None
 
@@ -52,6 +52,9 @@ class pascal3d_kp(torch.utils.data.Dataset):
         mean_class_size     = np.mean(class_hist)
         self.loss_weights   = mean_class_size / class_hist
 
+        if flip == True:
+            self.augment()
+
         # Print out dataset stats
         print "================================"
         print "Pascal3D (w/ Keypoints) Stats: "
@@ -79,6 +82,17 @@ class pascal3d_kp(torch.utils.data.Dataset):
         kp_loc  = list(self.kp_loc[index])
         kp_cls  = self.kp_cls[index]
         obj_cls = self.obj_cls[index]
+
+        if self.obj_cls[index] == 0:
+            obj_cls = 4
+        elif self.obj_cls[index] == 1:
+            obj_cls = 5
+        elif self.obj_cls[index] == 2:
+            obj_cls = 8
+        else:
+            exit()
+
+
         view    = self.vp_labels[index]
         flip    = self.flip[index]
 
@@ -98,7 +112,7 @@ class pascal3d_kp(torch.utils.data.Dataset):
         kpc_vec[kp_cls] = 1
         kp_class        = torch.from_numpy(kpc_vec).float()
 
-        kpm_map         = self.generate_kp_map_chebyshev(kp_loc, flip)
+        kpm_map         = self.generate_kp_map_chebyshev(kp_loc)
         kp_map          = torch.from_numpy(kpm_map).float()
 
         # construct unique key for statistics -- only need to generate imid and year
@@ -195,16 +209,19 @@ class pascal3d_kp(torch.utils.data.Dataset):
         kp_map = np.ndarray( (self.map_size, self.map_size) )
 
 
+        # kp[0] = 1. - kp[0]
         kp[0] = kp[0] * self.map_size
         kp[1] = kp[1] * self.map_size
 
         for i in range(0, self.map_size):
             for j in range(0, self.map_size):
                 kp_map[i,j] = max( np.abs(i - kp[0]), np.abs(j - kp[1]))
+                # kp_map[i,j] = self.map_size - max( np.abs(i - kp[0]), np.abs(j - kp[1]))
 
         # Normalize by dividing by the maximum possible value, which is self.IMG_SIZE -1
-        kp_map = kp_map / (self.map_size - 1.)
-        kp_map = -2. * (kp_map - 0.5)
+        # kp_map = kp_map * (1.* self.img_size) / (1. * self.map_size)
+        kp_map = kp_map / (1. * self.map_size)
+        # kp_map = -2. * (kp_map - 0.5)
         return kp_map
 
 

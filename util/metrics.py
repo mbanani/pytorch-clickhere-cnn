@@ -24,14 +24,13 @@ class kp_dict(object):
             labels      = [labels]
 
         for i in range(0, len(unique_id)):
-            embed()
-            exit()
-            image = unique_id[i].split('_objc')[0]
+            image       = unique_id[i].split('_objc')[0]
             obj_class   = int(unique_id[i].split('_objc')[1].split('_kpc')[0])
             kp_class    = int(unique_id[i].split('_objc')[1].split('_kpc')[1])
 
             start_index = self.class_ranges[obj_class]
             end_index   = self.class_ranges[obj_class + 1]
+
 
             pred_probs = (  predictions[0][i, start_index:end_index],
                             predictions[1][i, start_index:end_index],
@@ -97,7 +96,7 @@ class kp_dict(object):
             if type_total[i] > 0:
                 type_accuracy[i] = float(type_correct[i]) / type_total[i]
 
-        self.calculate_performance_baselines()
+        # self.calculate_performance_baselines()
         return type_accuracy, type_total, type_geo_dist
 
 
@@ -207,6 +206,7 @@ class vp_dict(object):
             predictions = [predictions]
         if type(labels) == int:
             labels = [labels]
+
 
         for i in range(0, len(obj_class)):
             start_index = self.class_ranges[obj_class[i]]

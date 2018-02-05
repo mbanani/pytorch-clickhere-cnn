@@ -22,19 +22,28 @@ def main(args):
     train_loader, valid_loader, test_loader = get_data_loaders(   dataset     = args.dataset,
                                                     batch_size  = args.batch_size,
                                                     num_workers = args.num_workers,
-                                                    machine     = args.machine,
                                                     model       = args.model,
                                                     flip        = args.flip,
                                                     num_classes = args.num_classes,
-                                                    valid       = 0.1)
+                                                    valid       = 0.0)
 
     print "#############  Initiate Model     ##############"
     if args.model == 'clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, batch_norm = args.batch_norm))
-    if args.model == 'pretrained_clickhere':
+        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights))
+        args.no_keypoint = False
+    elif args.model == 'pretrained_clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
         model = clickhere_cnn(render4cnn(), weights_path = Paths.clickhere_weights)
+        args.no_keypoint = False
+    elif args.model == 'pretrained_render':
+        assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
+        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights)
+        args.no_keypoint = True
+    elif args.model == 'pretrained_FTrender':
+        assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
+        model = render4cnn(weights = 'npy', weights_path = Paths.ft_render4cnn_weights)
+        args.no_keypoint = True
     else:
         assert False, "Error: unknown model choice."
 
@@ -42,7 +51,7 @@ def main(args):
     criterion = ViewpointLoss(num_classes = args.num_classes, weights = train_loader.dataset.loss_weights)
 
     # Parameters to train
-    if args.just_attention:
+    if args.just_attention and (not args.no_keypoint):
         params = list(model.map_linear.parameters()) +list(model.cls_linear.parameters())
         params = params + list(model.kp_softmax.parameters()) +list(model.fusion.parameters())
         params = params + list(model.azim.parameters()) + list(model.elev.parameters())
@@ -62,31 +71,31 @@ def main(args):
         assert False, "Error: Unknown choice for optimizer."
 
 
-    if args.resume is not None:
-        print "Load pretrained Module at %s " % (args.resume)
-        checkpoint      = torch.load(args.resume)
-        args.best_loss  = checkpoint['val_loss']
-        args.best_acc   = checkpoint['val_acc']
-        start_epoch     = checkpoint['epoch']
-        start_step      = checkpoint['step']
-        state_dict      = checkpoint['state_dict']
+    # if args.resume is not None:
+    #     print "Load pretrained Module at %s " % (args.resume)
+    #     checkpoint      = torch.load(args.resume)
+    #     args.best_loss  = checkpoint['val_loss']
+    #     args.best_acc   = checkpoint['val_acc']
+    #     start_epoch     = checkpoint['epoch']
+    #     start_step      = checkpoint['step']
+    #     state_dict      = checkpoint['state_dict']
+    #
+    #     print "Pretrained Model Val Accuracy is %f " % (args.best_acc)
+    #     # optimizer.load_state_dict(checkpoint['optimizer'])
+    #     from collections import OrderedDict
+    #     new_state_dict = OrderedDict()
+    #     for k, v in state_dict.items():
+    #         name = k[7:] # remove `module.`
+    #         new_state_dict[name] = v
+    #     # load params
+    #     model.load_state_dict(new_state_dict)
+    # else:
+    #     start_epoch     = 0
+    #     start_step      = 0
 
-        print "Pretrained Model Val Accuracy is %f " % (args.best_acc)
-        # optimizer.load_state_dict(checkpoint['optimizer'])
-        from collections import OrderedDict
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            name = k[7:] # remove `module.`
-            new_state_dict[name] = v
-        # load params
-        model.load_state_dict(new_state_dict)
-    else:
-        start_epoch     = 0
-        start_step      = 0
-
-    if args.world_size > 1:
-        print "Parallelizing Model"
-        model = torch.nn.DataParallel(model, device_ids = range(0, args.world_size))
+    # if args.world_size > 1:
+    #     print "Parallelizing Model"
+    #     model = torch.nn.DataParallel(model, device_ids = range(0, args.world_size))
 
     # Train on GPU if available
     if torch.cuda.is_available():
@@ -107,11 +116,15 @@ def main(args):
                                     step        = epoch * total_step,
                                     datasplit   = "train")
 
-            curr_loss, curr_wacc = eval_step(   model       = model,
-                                                data_loader = valid_loader,
-                                                criterion   = criterion,
-                                                step        = epoch * total_step,
-                                                datasplit   = "valid")
+            if valid_loader != None:
+                curr_loss, curr_wacc = eval_step(   model       = model,
+                                                    data_loader = valid_loader,
+                                                    criterion   = criterion,
+                                                    step        = epoch * total_step,
+                                                    datasplit   = "valid")
+            else:
+                curr_loss = 0
+                curr_wacc = 0
 
 
             _, _ = eval_step(   model       = model,
@@ -124,17 +137,17 @@ def main(args):
 
         if args.evaluate_only:
             exit()
-
-        if epoch % args.save_epoch == 0 and epoch > 0:
-
-            args = save_checkpoint(  model      = model,
-                                     optimizer  = optimizer,
-                                     curr_epoch = epoch,
-                                     curr_step  = (total_step * epoch),
-                                     args       = args,
-                                     curr_loss  = curr_loss,
-                                     curr_acc   = curr_wacc,
-                                     filename   = ('model@epoch%d.pkl' %(epoch)))
+        #
+        # if epoch % args.save_epoch == 0 and epoch > 0:
+        #
+        #     args = save_checkpoint(  model      = model,
+        #                              optimizer  = optimizer,
+        #                              curr_epoch = epoch,
+        #                              curr_step  = (total_step * epoch),
+        #                              args       = args,
+        #                              curr_loss  = curr_loss,
+        #                              curr_acc   = curr_wacc,
+        #                              filename   = ('model@epoch%d.pkl' %(epoch)))
 
         if args.optimizer == 'sgd':
             scheduler.step()
@@ -149,15 +162,15 @@ def main(args):
                     valid_loader = valid_loader,
                     valid_type   = "valid")
 
-    # Final save of the model
-    args = save_checkpoint(  model      = model,
-                             optimizer  = optimizer,
-                             curr_epoch = epoch,
-                             curr_step  = (total_step * epoch),
-                             args       = args,
-                             curr_loss  = curr_loss,
-                             curr_acc   = curr_wacc,
-                             filename   = ('model@epoch%d.pkl' %(epoch)))
+    # # Final save of the model
+    # args = save_checkpoint(  model      = model,
+    #                          optimizer  = optimizer,
+    #                          curr_epoch = epoch,
+    #                          curr_step  = (total_step * epoch),
+    #                          args       = args,
+    #                          curr_loss  = curr_loss,
+    #                          curr_acc   = curr_wacc,
+    #                          filename   = ('model@epoch%d.pkl' %(epoch)))
 
 def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loader = None, valid_type = "valid"):
     model.train()
@@ -178,13 +191,18 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
         elev_label  = to_var(elev_label)
         tilt_label  = to_var(tilt_label)
         obj_class   = to_var(obj_class)
-        kp_map      = to_var(kp_map, volatile=False)
-        kp_class    = to_var(kp_class, volatile=False)
+
+        if (not args.no_keypoint):
+            kp_map      = to_var(kp_map, volatile=False)
+            kp_class    = to_var(kp_class, volatile=False)
 
         # Forward, Backward and Optimize
         model.zero_grad()
 
-        azim, elev, tilt = model(images, kp_map, kp_class)
+        if args.no_keypoint:
+            azim, elev, tilt = model(images)
+        else:
+            azim, elev, tilt = model(images, kp_map, kp_class)
 
         loss_a = criterion(azim, azim_label, obj_class)
         loss_e = criterion(elev, elev_label, obj_class)
@@ -250,11 +268,11 @@ def eval_step( model, data_loader,  criterion, step, datasplit):
     epoch_loss_e    = 0.
     epoch_loss_t    = 0.
     epoch_loss      = 0.
-    results_dict    = kp_dict()
+    results_dict    = vp_dict()
 
     for i, (images, azim_label, elev_label, tilt_label, obj_class, kp_map, kp_class, key_uid) in enumerate(data_loader):
 
-        if i % 100 == 0:
+        if i % args.log_rate == 0:
             print "Evaluation of %s [%d/%d] Time Elapsed: %f " % (datasplit, i, total_step, time.time() - start_time)
 
         images = to_var(images, volatile=True)
@@ -262,10 +280,13 @@ def eval_step( model, data_loader,  criterion, step, datasplit):
         elev_label = to_var(elev_label, volatile=True)
         tilt_label = to_var(tilt_label, volatile=True)
 
-        kp_map      = to_var(kp_map, volatile=True)
-        kp_class    = to_var(kp_class, volatile=True)
 
-        azim, elev, tilt = model(images, kp_map, kp_class)
+        if args.no_keypoint:
+            azim, elev, tilt = model(images)
+        else:
+            kp_map      = to_var(kp_map, volatile=False)
+            kp_class    = to_var(kp_class, volatile=False)
+            azim, elev, tilt = model(images, kp_map, kp_class)
 
         # embed()
         object_class  = to_var(obj_class)
@@ -273,7 +294,7 @@ def eval_step( model, data_loader,  criterion, step, datasplit):
         epoch_loss_e += criterion(elev, elev_label, object_class).data[0]
         epoch_loss_t += criterion(tilt, tilt_label, object_class).data[0]
 
-        results_dict.update_dict( key_uid,
+        results_dict.update_dict( object_class.data.cpu().numpy(),
                             [azim.data.cpu().numpy(), elev.data.cpu().numpy(), tilt.data.cpu().numpy()],
                             [azim_label.data.cpu().numpy(), elev_label.data.cpu().numpy(), tilt_label.data.cpu().numpy()])
 
@@ -281,7 +302,7 @@ def eval_step( model, data_loader,  criterion, step, datasplit):
     type_accuracy, type_total, type_geo_dist = results_dict.metrics()
 
     geo_dist_median = [np.median(type_dist) * 180. / np.pi for type_dist in type_geo_dist if type_dist != [] ]
-    type_accuracy   = [ type_accuracy[i] for i in range(0, len(type_accuracy)) if  type_total[i] > 0]
+    type_accuracy   = [ type_accuracy[i] * 100. for i in range(0, len(type_accuracy)) if  type_total[i] > 0]
     w_acc           = np.mean(type_accuracy)
 
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
@@ -309,8 +330,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # logging parameters
-    parser.add_argument('--save_epoch',      type=int , default=10)
-    parser.add_argument('--eval_epoch',      type=int , default=10)
+    # parser.add_argument('--save_epoch',      type=int , default=10)
+    parser.add_argument('--eval_epoch',      type=int , default=5)
     parser.add_argument('--eval_step',       type=int , default=1000)
     parser.add_argument('--log_rate',        type=int, default=10)
     parser.add_argument('--num_workers',     type=int, default=7)
@@ -320,20 +341,18 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size',      type=int, default=256)
     parser.add_argument('--lr',              type=float, default=0.01)
     parser.add_argument('--optimizer',       type=str,default='sgd')
-    parser.add_argument('--batch_norm',      action="store_true",default=False)
 
     # experiment details
     parser.add_argument('--dataset',         type=str, default='pascalKP')
-    parser.add_argument('--model',           type=str, default='inceptionCH')
-    parser.add_argument('--experiment_name', type=str, default=None)
-    parser.add_argument('--machine',         type=str, default='z')
+    parser.add_argument('--model',           type=str, default='pretrained_clickhere')
+    parser.add_argument('--experiment_name', type=str, default= 'Test')
     parser.add_argument('--evaluate_only',   action="store_true",default=False)
     parser.add_argument('--evaluate_train',  action="store_true",default=False)
     parser.add_argument('--flip',            action="store_true",default=False)
     parser.add_argument('--just_attention',  action="store_true",default=False)
     parser.add_argument('--num_classes',     type=int, default=12)
-    parser.add_argument('--world_size',      type=int, default=1)
-    parser.add_argument('--resume',           type=str, default=None)
+    # parser.add_argument('--world_size',      type=int, default=1)
+    # parser.add_argument('--resume',           type=str, default=None)
 
 
     args = parser.parse_args()

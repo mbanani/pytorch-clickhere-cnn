@@ -60,7 +60,7 @@ def calc_viewloss_vec(size, sigma):
     band    = np.linspace(-1*size, size, 1 + 2*size, dtype=np.int16)
     vec     = np.linspace(-1*size, size, 1 + 2*size, dtype=np.float)
     prob    = np.exp(-1 * abs(vec) / sigma)
-    prob    = prob / np.sum(prob)
+    # prob    = prob / np.sum(prob)
 
     return band, prob
 
