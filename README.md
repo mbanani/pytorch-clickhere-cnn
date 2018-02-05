@@ -32,6 +32,11 @@ If you have any questions, please email me at mbanani@umich.edu.
 
 ## Getting Started
 
+Add the repository to your python path:
+
+        export PYTHONPATH=$PYTHONPATH:export PATH=$PATH:$(pwd)
+
+
 ### Generating the data
 Download the [Pascal 3D+ dataset](http://cvgl.stanford.edu/projects/pascal3d.html) (Release 1.1).
 Set the path for the Pascal3D directory in util/Paths.py. Finally, run the following command from the repository's root directory.
