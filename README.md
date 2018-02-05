@@ -66,7 +66,7 @@ you can run inference on the Pascal 3D+ dataset by running one of the following 
 The original Render For CNN paper reported the results on the 'easy' subset of Pascal3D, which removes any truncated and occluded images from the datasets. While Click-Here CNN reports results on an augmented version of the dataset where multiple instances may belong to the same object in the image as each image-keypoint pair corresponds to an instance. Below are the results Obtained from each of the runs above:
 
 | Experiment                        | plane | bike   | boat  | bottle    | bus   | car   | chair | d.table   | m.bike | sofa  | train | tv    | mean  |
-<!-- | ----------------------------------|:---------:|:---------:|:-----:|:---------:|:-----:|:-----:|:-----:|:-------------:|:---------:|:-----:|:-----:|:------------:|:-----:| -->
+| ----------------------------------|:---------:|:---------:|:-----:|:---------:|:-----:|:-----:|:-----:|:-------------:|:---------:|:-----:|:-----:|:------------:|:-----:|
 | R4CNN - Easy      | 80.37     | 85.59     | 62.93 | 95.60     | 94.14 | 84.08 | 82.76 | 80.95         | 85.30     | 84.61 | 84.08 | 93.26        | 84.47 |
 | R4CNN - Full      | 76.26     | 69.58     | 59.03 | 87.74     | 84.32 | 69.97 | 74.2  | 66.79         | 77.29     | 82.37 | 75.48 | 81.93        | 75.41 |
 | R4CNN - Veh.      | N/A       | N/A       | N/A   | N/A       | 89.26 | 74.36 | N/A   | N/A           | 81.93     | N/A   | N/A   | N/A          | 81.85 |
