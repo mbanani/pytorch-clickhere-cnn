@@ -38,17 +38,17 @@ def main(args):
         args.no_keypoint = False
     elif args.model == 'pretrained_render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights)
+        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, num_classes = args.num_classes)
         args.no_keypoint = True
     elif args.model == 'pretrained_FTrender':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = 'npy', weights_path = Paths.ft_render4cnn_weights)
+        model = render4cnn(weights = 'npy', weights_path = Paths.ft_render4cnn_weights, num_classes = args.num_classes)
         args.no_keypoint = True
     else:
         assert False, "Error: unknown model choice."
 
     # Loss functions
-    criterion = ViewpointLoss(num_classes = args.num_classes, weights = train_loader.dataset.loss_weights)
+    criterion = ViewpointLoss(num_classes = args.num_classes, weights = None) # train_loader.dataset.loss_weights)
 
     # Parameters to train
     if args.just_attention and (not args.no_keypoint):
@@ -331,7 +331,7 @@ if __name__ == '__main__':
 
     # logging parameters
     # parser.add_argument('--save_epoch',      type=int , default=10)
-    parser.add_argument('--eval_epoch',      type=int , default=5)
+    parser.add_argument('--eval_epoch',      type=int , default=1)
     parser.add_argument('--eval_step',       type=int , default=1000)
     parser.add_argument('--log_rate',        type=int, default=10)
     parser.add_argument('--num_workers',     type=int, default=7)
