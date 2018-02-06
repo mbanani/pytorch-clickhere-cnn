@@ -22,7 +22,7 @@ class pascal3d(data.Dataset):
             csv_path    path containing instance data
             augment     boolean for flipping images
     """
-    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, just_easy = False):
+    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, just_easy = False, num_classes = 12):
 
         start_time = time.time()
 
@@ -39,8 +39,8 @@ class pascal3d(data.Dataset):
         self.vp_labels  = vp_labels
         self.flip       = [False] * len(im_paths)
 
-        self.im_size    = im_size
-        self.num_classes    = 12
+        self.im_size        = im_size
+        self.num_classes    = num_classes
         self.num_instances  = len(self.im_paths)
         assert transform   != None
         self.transform      = transform

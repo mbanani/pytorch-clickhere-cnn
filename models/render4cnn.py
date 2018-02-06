@@ -11,7 +11,7 @@ import numpy as np
 
 
 class render4cnn(nn.Module):
-    def __init__(self, train=True, finetune=False, weights = None, weights_path = None, batch_norm = False):
+    def __init__(self, finetune=False, weights = None, weights_path = None, num_classes = 12):
         super(render4cnn, self).__init__()
 
         # Normalization layers
@@ -48,9 +48,9 @@ class render4cnn(nn.Module):
         drop6 = nn.Dropout(0.5)
         drop7 = nn.Dropout(0.5)
 
-        azim     = nn.Linear(4096,4320)
-        elev     = nn.Linear(4096,4320)
-        tilt     = nn.Linear(4096,4320)
+        azim     = nn.Linear(4096,num_classes * 360)
+        elev     = nn.Linear(4096,num_classes * 360)
+        tilt     = nn.Linear(4096,num_classes * 360)
 
 
         if weights == 'lua':
@@ -72,12 +72,23 @@ class render4cnn(nn.Module):
             fc6.bias.data.copy_(state_dict['16.1.bias'])
             fc7.weight.data.copy_(state_dict['19.1.weight'])
             fc7.bias.data.copy_(state_dict['19.1.bias'])
-            azim.weight.data.copy_(state_dict['22.1.weight'])
-            elev.weight.data.copy_(state_dict['24.1.weight'])
-            tilt.weight.data.copy_(state_dict['26.1.weight'])
-            azim.bias.data.copy_(state_dict['22.1.bias'])
-            elev.bias.data.copy_(state_dict['24.1.bias'])
-            tilt.bias.data.copy_(state_dict['26.1.bias'])
+
+            if num_classes == 3:
+                azim.weight.data.copy_( torch.cat([  state_dict['22.1.weight'][360*4:360*5, :],  state_dict['22.1.weight'][360*5:360*6, :], state_dict['22.1.weight'][360*8:360*9, :] ], dim = 0) )
+                elev.weight.data.copy_( torch.cat([  state_dict['24.1.weight'][360*4:360*5, :],  state_dict['24.1.weight'][360*5:360*6, :], state_dict['24.1.weight'][360*8:360*9, :] ], dim = 0) )
+                tilt.weight.data.copy_( torch.cat([  state_dict['26.1.weight'][360*4:360*5, :],  state_dict['26.1.weight'][360*5:360*6, :], state_dict['26.1.weight'][360*8:360*9, :] ], dim = 0) )
+
+                azim.bias.data.copy_(   torch.cat([  state_dict['22.1.bias'][360*4:360*5], state_dict['22.1.bias'][360*5:360*6], state_dict['22.1.bias'][360*8:360*9] ], dim = 0) )
+                elev.bias.data.copy_(   torch.cat([  state_dict['24.1.bias'][360*4:360*5], state_dict['24.1.bias'][360*5:360*6], state_dict['24.1.bias'][360*8:360*9] ], dim = 0) )
+                tilt.bias.data.copy_(   torch.cat([  state_dict['26.1.bias'][360*4:360*5], state_dict['26.1.bias'][360*5:360*6], state_dict['26.1.bias'][360*8:360*9] ], dim = 0) )
+            else:
+                azim.weight.data.copy_(state_dict['22.1.weight'])
+                elev.weight.data.copy_(state_dict['24.1.weight'])
+                tilt.weight.data.copy_(state_dict['26.1.weight'])
+                azim.bias.data.copy_(state_dict['22.1.bias'])
+                elev.bias.data.copy_(state_dict['24.1.bias'])
+                tilt.bias.data.copy_(state_dict['26.1.bias'])
+
         elif weights == 'npy':
             state_dict = np.load(weights_path).item()
 
@@ -103,45 +114,32 @@ class render4cnn(nn.Module):
             fc7.weight.data.copy_(state_dict['fc7']['weight'])
             fc7.bias.data.copy_(state_dict['fc7']['bias'])
 
-            azim.weight.data.copy_(state_dict['fc-azimuth']['weight'])
-            elev.weight.data.copy_(state_dict['fc-elevation']['weight'])
-            tilt.weight.data.copy_(state_dict['fc-tilt']['weight'])
-            azim.bias.data.copy_(state_dict['fc-azimuth']['bias'])
-            elev.bias.data.copy_(state_dict['fc-elevation']['bias'])
-            tilt.bias.data.copy_(state_dict['fc-tilt']['bias'])
+            if num_classes == 3:
+                azim.weight.data.copy_( torch.cat([  state_dict['pred_azimuth'][  'weight'][360*4:360*5, :],  state_dict['pred_azimuth'][  'weight'][360*5:360*6, :], state_dict['pred_azimuth'][  'weight'][360*8:360*9, :] ], dim = 0) )
+                elev.weight.data.copy_( torch.cat([  state_dict['pred_elevation']['weight'][360*4:360*5, :],  state_dict['pred_elevation']['weight'][360*5:360*6, :], state_dict['pred_elevation']['weight'][360*8:360*9, :] ], dim = 0) )
+                tilt.weight.data.copy_( torch.cat([  state_dict['pred_tilt'][     'weight'][360*4:360*5, :],  state_dict['pred_tilt'][     'weight'][360*5:360*6, :], state_dict['pred_tilt'][     'weight'][360*8:360*9, :] ], dim = 0) )
+
+                azim.bias.data.copy_(   torch.cat([  state_dict['pred_azimuth']['bias'][360*4:360*5], state_dict['pred_azimuth']['bias'][360*5:360*6], state_dict['pred_azimuth']['bias'][360*8:360*9] ], dim = 0) )
+                elev.bias.data.copy_(   torch.cat([  state_dict['pred_elevation']['bias'][360*4:360*5], state_dict['pred_elevation']['bias'][360*5:360*6], state_dict['pred_elevation']['bias'][360*8:360*9] ], dim = 0) )
+                tilt.bias.data.copy_(   torch.cat([  state_dict['pred_tilt']['bias'][360*4:360*5], state_dict['pred_tilt']['bias'][360*5:360*6], state_dict['pred_tilt']['bias'][360*8:360*9] ], dim = 0) )
+            else:
+                azim.weight.data.copy_(state_dict['fc-azimuth']['weight'])
+                elev.weight.data.copy_(state_dict['fc-elevation']['weight'])
+                tilt.weight.data.copy_(state_dict['fc-tilt']['weight'])
+                azim.bias.data.copy_(state_dict['fc-azimuth']['bias'])
+                elev.bias.data.copy_(state_dict['fc-elevation']['bias'])
+                tilt.bias.data.copy_(state_dict['fc-tilt']['bias'])
 
         # Define Network
-        if batch_norm:
-            bn3 = nn.BatchNorm2d(384)
-            bn4 = nn.BatchNorm2d(384)
-            bn5 = nn.BatchNorm2d(256)
-            bn6 = nn.BatchNorm2d(4096)
-            bn7 = nn.BatchNorm2d(4096)
+        self.conv4 = nn.Sequential( conv1, relu1, pool1, norm1,
+                                    conv2, relu2, pool2, norm2,
+                                    conv3, relu3,
+                                    conv4, relu4)
 
+        self.conv5 = nn.Sequential( conv5,  relu5,  pool5)
 
-            self.conv4 = nn.Sequential( conv1,      relu1, pool1, norm1,
-                                        conv2,      relu2, pool2, norm2,
-                                        conv3,  relu3, conv4, relu4)
-                                        # conv3, bn3, relu3,
-                                        # conv4, bn4, relu4)
-
-            self.conv5 = nn.Sequential( conv5, bn5, relu5, pool5)
-
-            # self.infer = nn.Sequential( fc6,   bn6, relu6, drop6,
-            #                             fc7,   bn7, relu7, drop7)
-            self.infer = nn.Sequential( fc6,   bn6, relu6, drop6,
-                                        fc7,        relu7, drop7)
-
-        else:
-            self.conv4 = nn.Sequential( conv1, relu1, pool1, norm1,
-                                        conv2, relu2, pool2, norm2,
-                                        conv3, relu3,
-                                        conv4, relu4)
-
-            self.conv5 = nn.Sequential( conv5,  relu5,  pool5)
-
-            self.infer = nn.Sequential( fc6,    relu6,  drop6,
-                                        fc7,    relu7,  drop7)
+        self.infer = nn.Sequential( fc6,    relu6,  drop6,
+                                    fc7,    relu7,  drop7)
 
         if finetune:
             self.conv4.requires_grad = False
