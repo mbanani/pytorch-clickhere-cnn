@@ -6,7 +6,7 @@ import numpy as np
 from IPython import embed
 
 class clickhere_cnn(nn.Module):
-    def __init__(self, renderCNN, weights_path = None):
+    def __init__(self, renderCNN, weights_path = None, num_classes = 12):
         super(clickhere_cnn, self).__init__()
 
         # Image Stream
@@ -32,9 +32,9 @@ class clickhere_cnn(nn.Module):
         drop8 = nn.Dropout(0.5)
 
         # Prediction layers
-        azim        = nn.Linear(4096,12*360)
-        elev        = nn.Linear(4096,12*360)
-        tilt        = nn.Linear(4096,12*360)
+        azim        = nn.Linear(4096, num_classes * 360)
+        elev        = nn.Linear(4096, num_classes * 360)
+        tilt        = nn.Linear(4096, num_classes * 360)
 
         if weights_path:
             npy_dict = np.load(weights_path).item()
@@ -70,12 +70,22 @@ class clickhere_cnn(nn.Module):
             kp_fuse.weight.data.copy_(state_dict['fc-keypoint-concat']['weight'])
             kp_fuse.bias.data.copy_(state_dict['fc-keypoint-concat']['bias'])
 
-            azim.weight.data.copy_(state_dict['pred_azimuth']['weight'])
-            elev.weight.data.copy_(state_dict['pred_elevation']['weight'])
-            tilt.weight.data.copy_(state_dict['pred_tilt']['weight'])
-            azim.bias.data.copy_(state_dict['pred_azimuth']['bias'])
-            elev.bias.data.copy_(state_dict['pred_elevation']['bias'])
-            tilt.bias.data.copy_(state_dict['pred_tilt']['bias'])
+            if num_classes == 3:
+                azim.weight.data.copy_( torch.cat([  state_dict['pred_azimuth'][  'weight'][360*4:360*5, :],  state_dict['pred_azimuth'][  'weight'][360*5:360*6, :], state_dict['pred_azimuth'][  'weight'][360*8:360*9, :] ], dim = 0) )
+                elev.weight.data.copy_( torch.cat([  state_dict['pred_elevation']['weight'][360*4:360*5, :],  state_dict['pred_elevation']['weight'][360*5:360*6, :], state_dict['pred_elevation']['weight'][360*8:360*9, :] ], dim = 0) )
+                tilt.weight.data.copy_( torch.cat([  state_dict['pred_tilt'][     'weight'][360*4:360*5, :],  state_dict['pred_tilt'][     'weight'][360*5:360*6, :], state_dict['pred_tilt'][     'weight'][360*8:360*9, :] ], dim = 0) )
+
+                azim.bias.data.copy_(   torch.cat([  state_dict['pred_azimuth']['bias'][360*4:360*5], state_dict['pred_azimuth']['bias'][360*5:360*6], state_dict['pred_azimuth']['bias'][360*8:360*9] ], dim = 0) )
+                elev.bias.data.copy_(   torch.cat([  state_dict['pred_elevation']['bias'][360*4:360*5], state_dict['pred_elevation']['bias'][360*5:360*6], state_dict['pred_elevation']['bias'][360*8:360*9] ], dim = 0) )
+                tilt.bias.data.copy_(   torch.cat([  state_dict['pred_tilt']['bias'][360*4:360*5], state_dict['pred_tilt']['bias'][360*5:360*6], state_dict['pred_tilt']['bias'][360*8:360*9] ], dim = 0) )
+            else:
+                azim.weight.data.copy_( state_dict['pred_azimuth'  ]['weight'] )
+                elev.weight.data.copy_( state_dict['pred_elevation']['weight'] )
+                tilt.weight.data.copy_( state_dict['pred_tilt'     ]['weight'] )
+
+                azim.bias.data.copy_( state_dict['pred_azimuth'  ]['bias'] )
+                elev.bias.data.copy_( state_dict['pred_elevation']['bias'] )
+                tilt.bias.data.copy_( state_dict['pred_tilt'     ]['bias'] )
 
         self.pool_map    = nn.Sequential(nn.MaxPool2d( (5,5), (5,5), (1,1), ceil_mode=True))
         self.map_linear  = nn.Sequential( kp_map )
@@ -85,39 +95,40 @@ class clickhere_cnn(nn.Module):
         self.infer = nn.Sequential(fc6, relu6, drop6, fc7, relu7, drop7)
         self.fusion = nn.Sequential(fc8, relu8, drop8)
 
-        self.azim = nn.Sequential(azim )
+
+        self.azim = nn.Sequential(azim)
         self.elev = nn.Sequential(elev)
         self.tilt = nn.Sequential(tilt)
 
-        # if weights_path == None:
-        #     self.init_weights()
+        if weights_path == None:
+            self.init_weights()
 
-    #
-    # def init_weights(self):
-    #
-    #     self.infer[0].weight.data.normal_(0.0, 0.01)
-    #     self.infer[0].bias.data.fill_(0)
-    #     self.infer[3].weight.data.normal_(0.0, 0.01)
-    #     self.infer[3].bias.data.fill_(0)
-    #
-    #     # Intialize weights for KP stream
-    #     self.map_linear[0].weight.data.normal_(0.0, 0.01)
-    #     self.map_linear[0].bias.data.fill_(0)
-    #     self.cls_linear[0].weight.data.normal_(0.0, 0.01)
-    #     self.cls_linear[0].bias.data.fill_(0)
-    #     self.kp_softmax[0].weight.data.normal_(0.0, 0.01)
-    #     self.kp_softmax[0].bias.data.fill_(0)
-    #
-    #     # Initialize weights for fusion and inference
-    #     self.fusion[0].weight.data.normal_(0.0, 0.01)
-    #     self.fusion[0].bias.data.fill_(0)
-    #
-    #     self.azim[0].weight.data.normal_(0.0, 0.01)
-    #     self.azim[0].bias.data.fill_(0)
-    #     self.elev[0].weight.data.normal_(0.0, 0.01)
-    #     self.elev[0].bias.data.fill_(0)
-    #     self.tilt[0].weight.data.normal_(0.0, 0.01)
-    #     self.tilt[0].bias.data.fill_(0)
+
+    def init_weights(self):
+
+        self.infer[0].weight.data.normal_(0.0, 0.01)
+        self.infer[0].bias.data.fill_(0)
+        self.infer[3].weight.data.normal_(0.0, 0.01)
+        self.infer[3].bias.data.fill_(0)
+
+        # Intialize weights for KP stream
+        self.map_linear[0].weight.data.normal_(0.0, 0.01)
+        self.map_linear[0].bias.data.fill_(0)
+        self.cls_linear[0].weight.data.normal_(0.0, 0.01)
+        self.cls_linear[0].bias.data.fill_(0)
+        self.kp_softmax[0].weight.data.normal_(0.0, 0.01)
+        self.kp_softmax[0].bias.data.fill_(0)
+
+        # Initialize weights for fusion and inference
+        self.fusion[0].weight.data.normal_(0.0, 0.01)
+        self.fusion[0].bias.data.fill_(0)
+
+        self.azim[0].weight.data.normal_(0.0, 0.01)
+        self.azim[0].bias.data.fill_(0)
+        self.elev[0].weight.data.normal_(0.0, 0.01)
+        self.elev[0].bias.data.fill_(0)
+        self.tilt[0].weight.data.normal_(0.0, 0.01)
+        self.tilt[0].bias.data.fill_(0)
 
 
     def forward(self, images, kp_map, kp_class):
@@ -151,6 +162,7 @@ class clickhere_cnn(nn.Module):
         features_fused = torch.cat([features_fc7, attention_kp], dim = 1)
         features_fused = self.fusion(features_fused)
 
+        # Final inference
         azim = self.azim(features_fused)
         elev = self.elev(features_fused)
         tilt = self.tilt(features_fused)
