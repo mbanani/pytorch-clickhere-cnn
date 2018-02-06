@@ -30,11 +30,11 @@ def main(args):
     print "#############  Initiate Model     ##############"
     if args.model == 'clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights))
+        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights), num_classes = args.num_classes)
         args.no_keypoint = False
     elif args.model == 'pretrained_clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = clickhere_cnn(render4cnn(), weights_path = Paths.clickhere_weights)
+        model = clickhere_cnn(render4cnn(), weights_path = Paths.clickhere_weights, num_classes = args.num_classes)
         args.no_keypoint = False
     elif args.model == 'pretrained_render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
