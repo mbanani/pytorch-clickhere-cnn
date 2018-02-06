@@ -21,7 +21,7 @@ class pascal3d_kp(torch.utils.data.Dataset):
             csv_path    path containing instance data
             augment     boolean for flipping images
     """
-    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, map_size = 46, flip = False):
+    def __init__(self, csv_path, dataset_root = None, im_size = 227, transform = None, map_size = 46, num_classes = 12, flip = False):
 
         assert transform           != None
 
@@ -43,7 +43,7 @@ class pascal3d_kp(torch.utils.data.Dataset):
         self.flip           = [False] * len(im_paths)
         self.img_size       = im_size
         self.map_size       = map_size
-        self.num_classes    = 12
+        self.num_classes    = num_classes
         self.num_instances  = len(self.im_paths)
         self.transform      = transform
 
@@ -83,14 +83,15 @@ class pascal3d_kp(torch.utils.data.Dataset):
         kp_cls  = self.kp_cls[index]
         obj_cls = self.obj_cls[index]
 
-        if self.obj_cls[index] == 0:
-            obj_cls = 4
-        elif self.obj_cls[index] == 1:
-            obj_cls = 5
-        elif self.obj_cls[index] == 2:
-            obj_cls = 8
-        else:
-            exit()
+        if self.num_classes == 3:
+            if self.obj_cls[index] == 4:
+                obj_cls = 0
+            elif self.obj_cls[index] == 5:
+                obj_cls = 1
+            elif self.obj_cls[index] == 8:
+                obj_cls = 2
+            else:
+                exit()
 
 
         view    = self.vp_labels[index]

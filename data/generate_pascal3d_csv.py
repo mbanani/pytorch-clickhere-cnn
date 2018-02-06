@@ -4,7 +4,7 @@ import scipy.io as spio
 
 from IPython import embed
 
-from util                       import Paths
+from util import Paths
 
 INFO_FILE_HEADER = 'imgPath,bboxTLX,bboxTLY,bboxBRX,bboxBRY,imgKeyptX,imgKeyptY,keyptClass,objClass,azimuthClass,elevationClass,rotationClass\n'
 
@@ -131,6 +131,21 @@ def create_pascal_image_kp_csvs(vehicles = False):
                                 ('04468005', 'train'),
                                 ('03211117', 'tvmonitor')]
 
+    SYNSET_CLASSIDX_MAP = {}
+    for i in range(len(synset_name_pairs)):
+        synset, _ = synset_name_pairs[i]
+        SYNSET_CLASSIDX_MAP[synset] = i
+
+    KEYPOINT_CLASSES = []
+    for synset, class_name in synset_name_pairs:
+        keypoint_names = KEYPOINT_TYPES[class_name]
+        for keypoint_name in keypoint_names:
+            KEYPOINT_CLASSES.append(class_name + '_' + keypoint_name)
+
+    KEYPOINTCLASS_INDEX_MAP = {}
+    for i in range(len(KEYPOINT_CLASSES)):
+        KEYPOINTCLASS_INDEX_MAP[KEYPOINT_CLASSES[i]] = i
+
     info_file_train = open(train_csv, 'w')
     info_file_train.write(INFO_FILE_HEADER)
     info_file_test = open(valid_csv, 'w')
@@ -193,7 +208,16 @@ def create_pascal_image_kp_csvs(vehicles = False):
                                     counter_kp += 1
                                     # Add info for current keypoint
                                     keypoint_class = KEYPOINTCLASS_INDEX_MAP[class_name + '_' + keypoint_name]
-                                    final_label = ( object_class, azimuth, elevation, tilt)
+                                    if vehicles:
+                                        if object_class == 0:
+                                            final_label = ( 4, azimuth, elevation, tilt)
+                                        elif object_class == 1:
+                                            final_label = ( 5, azimuth, elevation, tilt)
+                                        elif object_class == 2:
+                                            final_label = ( 8, azimuth, elevation, tilt)
+                                        else:
+                                            print "Error: Object classes do not match expected values!"
+
                                     keypoint_str = keypointInfo2Str(rel_image_path, bbox, keypoint_loc_full, keypoint_class, final_label)
                                     if anno_file_set == 'train':
                                         info_file_train.write(keypoint_str)
@@ -355,7 +379,7 @@ def viewpointInfo2Str(fullImagePath, bbox, viewptLabel):
     )
 
 if __name__ == '__main__':
-    create_pascal_image_kp_csvs()
+    # create_pascal_image_kp_csvs()
     create_pascal_image_kp_csvs(vehicles = True)       # Just vehicles
-    create_pascal_image_csvs()
-    create_pascal_image_csvs(easy = True)              # Easy subset
+    # create_pascal_image_csvs()
+    # create_pascal_image_csvs(easy = True)              # Easy subset

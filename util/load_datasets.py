@@ -46,15 +46,27 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
         csv_train = os.path.join(root_dir, 'data/pascal3d_train_easy.csv')
         csv_test  = os.path.join(root_dir, 'data/pascal3d_valid_easy.csv')
 
-        train_set = pascal3d(csv_train, dataset_root= dataset_root, transform = train_transform, im_size = image_size)
-        test_set  = pascal3d(csv_test,  dataset_root= dataset_root, transform = test_transform,  im_size = image_size)
+        train_set = pascal3d(   csv_train, dataset_root= dataset_root,
+                                transform = train_transform, im_size = image_size)
+        test_set  = pascal3d(   csv_test,  dataset_root= dataset_root,
+                                transform = test_transform,  im_size = image_size)
 
     elif dataset == "pascalVehKP":
         csv_train = os.path.join(root_dir, 'data/veh_pascal3d_kp_train.csv')
         csv_test  = os.path.join(root_dir, 'data/veh_pascal3d_kp_valid.csv')
 
-        train_set = pascal3d_kp(csv_train, dataset_root= dataset_root, transform = train_transform, im_size = image_size, flip = True)
-        test_set  = pascal3d_kp(csv_test,  dataset_root= dataset_root, transform = test_transform,  im_size = image_size)
+        train_set = pascal3d_kp(csv_train,
+                                dataset_root= dataset_root,
+                                transform = train_transform,
+                                im_size = image_size,
+                                num_classes = num_classes,
+                                flip = True)
+
+        test_set  = pascal3d_kp(csv_test,
+                                dataset_root= dataset_root,
+                                transform = test_transform,
+                                im_size = image_size,
+                                num_classes = num_classes)
 
     elif dataset == "pascalKP":
         csv_train = os.path.join(root_dir, 'data/pascal3d_kp_train.csv')
