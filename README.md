@@ -16,6 +16,7 @@
 - [ ] Train models from scratch!
 - [ ] Test model save and resume
 - [ ] Test parallelization
+- [ ] Test Tensorflow logging
 - [ ] Dataset wrapper for Synthetic dataset
 
 ## Introduction
@@ -34,7 +35,7 @@ If you have any questions, please email me at mbanani@umich.edu.
 
 Add the repository to your python path:
 
-        export PYTHONPATH=$PYTHONPATH:export PATH=$PATH:$(pwd)
+        export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 
 ### Generating the data
