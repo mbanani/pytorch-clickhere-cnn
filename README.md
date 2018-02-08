@@ -13,10 +13,10 @@
 <!-- - [ ] Update README to reflect current content -->
 <!-- - [ ] Normalize Class Naming methodology (Capital vs normal .. ) -->
 <!-- - [ ] Try to resolve dependence on util .. be more systematic about my imports! -->
-- [ ] Train models from scratch!
 <!-- - [x] Test model save and resume -->
-- [ ] Fix parallelization
 <!-- - [x] Test Tensorflow logging -->
+- [ ] Train models from scratch!
+- [ ] Fix parallelization
 - [ ] Dataset wrapper for Synthetic dataset
 
 ## Introduction
@@ -80,14 +80,17 @@ It is worth nothing that the converted model actually exceeds the performance re
 #### Accuracy
 |dataset    | plane | bike  | boat  | bottle| bus   | car   | chair |d.table| mbike | sofa  | train | tv    | mean  |
 |:---------:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
-|Pascal-Easy| 80.37 | 85.59 | 62.93 | 95.60 | 94.14 | 84.08 | 82.76 | 80.95 | 85.30 | 84.61 | 84.08 | 93.26 | 84.47 |
-|Pascal-Full| 76.26 | 69.58 | 59.03 | 87.74 | 84.32 | 69.97 | 74.2  | 66.79 | 77.29 | 82.37 | 75.48 | 81.93 | 75.41 |
+| Full      | 76.26 | 69.58 | 59.03 | 87.74 | 84.32 | 69.97 | 74.2  | 66.79 | 77.29 | 82.37 | 75.48 | 81.93 | 75.41 |
+| Easy      | 80.37 | 85.59 | 62.93 | 95.60 | 94.14 | 84.08 | 82.76 | 80.95 | 85.30 | 84.61 | 84.08 | 93.26 | 84.47 |
+| Reported  | 74    | 83    | 52    | 91    | 91    | 88    | 86    | 73    | 78    | 90    | 86    | 92    | 82    |
 
 #### Median Error
 |dataset    | plane | bike  | boat  | bottle| bus   | car   | chair |d.table| mbike | sofa  | train | tv    | mean  |
 |:---------:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
-|Pascal-Easy| 10.32 | 11.66 | 17.74 | 6.66  | 4.52  | 6.65  | 11.21 | 9.75  | 13.11 | 9.76  | 5.52  | 11.93 | 9.90  |
-|Pascal-Full| 11.52 | 15.33 | 19.33 | 8.51  | 5.54  | 9.39  | 13.83 | 12.87 | 14.90 | 13.03 | 8.96  | 13.72 | 12.24 |
+|Full       | 11.52 | 15.33 | 19.33 | 8.51  | 5.54  | 9.39  | 13.83 | 12.87 | 14.90 | 13.03 | 8.96  | 13.72 | 12.24 |
+|Easy       | 10.32 | 11.66 | 17.74 | 6.66  | 4.52  | 6.65  | 11.21 | 9.75  | 13.11 | 9.76  | 5.52  | 11.93 | 9.90  |
+|Reported   | 15.4  | 14.8  | 25.6  | 9.3   | 3.6   | 6.0   | 9.7   | 10.8  | 16.7  | 9.5   | 6.1   | 12.6  | 11.7  |
+
 
 
 ### Pascal3D - Vehicles with Keypoints
@@ -119,24 +122,24 @@ We fine-tuned both models on
 
 |                               |  bus  | car   | m.bike | mean  |
 |:-----------------------------:|:-----:|:-----:|:------:|:-----:|
-| Render For CNN FT (reported)  | 90.6  | 82.4  | 84.1   | 85.7  |
-| Click-Here CNN (reported)     | 96.8  | 90.2  | 85.2   | 90.7  |
+<!-- | Render For CNN FT (reported)  | 90.6  | 82.4  | 84.1   | 85.7  | -->
 | Render For CNN FT             | 93.55 | 83.98 | 87.30  | 88.28 |
 | Click-Here CNN FT             | 92.97 | 89.84 | 81.25  | 88.02 |
 | Click-Here CNN FT-Attention   | 94.48 | 90.77 | 84.91  | 90.05 |
+| Click-Here CNN (reported)     | 96.8  | 90.2  | 85.2   | 90.7  |
 
 
 #### Median Error
 
 |                               |  bus  | car   | m.bike | mean  |
 |:-----------------------------:|:-----:|:-----:|:------:|:-----:|
-| Render For CNN FT (reported)  | 2.93  | 5.63  | 11.7   | 6.74  |
-| Click-Here CNN (reported)     | 2.63  | 4.98  | 11.4   | 6.35  |
+<!-- | Render For CNN FT (reported)  | 2.93  | 5.63  | 11.7   | 6.74  | -->
 | Render For CNN FT             | 3.04  | 5.83  | 11.95  | 6.94  |
 | Click-Here CNN FT             | 2.93  | 5.14  | 13.42  | 7.16  |
 | Click-Here CNN FT-Attention   | 2.88  | 5.24  | 12.10  | 6.74  |
+| Click-Here CNN (reported)     | 2.63  | 4.98  | 11.4   | 6.35  |
 
-(Note: Finetuned weights will be uploaded soon)
+(Note: Fine-tuned weights will be uploaded soon)
 
 ### Training the model
 
