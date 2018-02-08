@@ -14,9 +14,9 @@
 <!-- - [ ] Normalize Class Naming methodology (Capital vs normal .. ) -->
 <!-- - [ ] Try to resolve dependence on util .. be more systematic about my imports! -->
 - [ ] Train models from scratch!
-- [ ] Test model save and resume
-- [ ] Test parallelization
-- [ ] Test Tensorflow logging
+<!-- - [x] Test model save and resume -->
+- [ ] Fix parallelization
+<!-- - [x] Test Tensorflow logging -->
 - [ ] Dataset wrapper for Synthetic dataset
 
 ## Introduction
@@ -71,41 +71,72 @@ you can run inference on the Pascal 3D+ dataset by running one of the following 
 
 The original Render For CNN paper reported the results on the 'easy' subset of Pascal3D, which removes any truncated and occluded images from the datasets. While Click-Here CNN reports results on an augmented version of the dataset where multiple instances may belong to the same object in the image as each image-keypoint pair corresponds to an instance. Below are the results Obtained from each of the runs above.
 
-### Pascal3D (Render For CNN - All Classes)
+### Render For CNN paper results:
 
-Accuracy :
-| | plane | bike   | boat  | bottle    | bus   | car   | chair | d.table   | m.bike | sofa  | train | tv    | mean  |
-| ----------------------------------|:---------:|:---------:|:-----:|:---------:|:-----:|:-----:|:-----:|:-------------:|:---------:|:-----:|:-----:|:------------:|:-----:|
-| Easy      | 80.37     | 85.59     | 62.93 | 95.60     | 94.14 | 84.08 | 82.76 | 80.95         | 85.30     | 84.61 | 84.08 | 93.26        | 84.47 |
-| Full      | 76.26     | 69.58     | 59.03 | 87.74     | 84.32 | 69.97 | 74.2  | 66.79         | 77.29     | 82.37 | 75.48 | 81.93        | 75.41 |
-
-|  | plane | bike   | boat  | bottle    | bus   | car   | chair | d.table   | m.bike | sofa  | train | tv    | mean  |
-| ----------------------------------|:---------:|:---------:|:-----:|:---------:|:-----:|:-----:|:-----:|:-------------:|:---------:|:-----:|:-----:|:------------:|:-----:|
-| Easy      | 10.32     | 11.66     | 17.74 | 6.66      | 4.52  | 6.65  | 11.21 | 9.75          | 13.11     | 9.76  | 5.52  | 11.93        | 9.90  |
-| Full      | 11.52     | 15.33     | 19.33 | 8.51      | 5.54  | 9.39  | 13.83 | 12.87         | 14.90     | 13.03 | 8.96  | 13.72        | 12.24 |
-
-
-### Pascal3D - Vehicles
+We evaluate the converted model on Pascal3D-easy as reported in the original Render For CNN paper,
+as well as the full Pascal 3D dataset.
+It is worth nothing that the converted model actually exceeds the performance reported in Render For CNN.
 
 #### Accuracy
-|                       |  bus  | car   | m.bike    | mean  |
-|:---------------------:|:-----:|:-----:|:---------:|:-----:|
-| Render For CNN        | 89.26 | 74.36 | 81.93     | 81.85 |
-| Click-Here CNN        | 86.91 | 83.25 | 73.83     | 81.33 |
+|dataset    | plane | bike  | boat  | bottle| bus   | car   | chair |d.table| mbike | sofa  | train | tv    | mean  |
+|:---------:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|Pascal-Easy| 80.37 | 85.59 | 62.93 | 95.60 | 94.14 | 84.08 | 82.76 | 80.95 | 85.30 | 84.61 | 84.08 | 93.26 | 84.47 |
+|Pascal-Full| 76.26 | 69.58 | 59.03 | 87.74 | 84.32 | 69.97 | 74.2  | 66.79 | 77.29 | 82.37 | 75.48 | 81.93 | 75.41 |
 
 #### Median Error
-|                       |  bus  | car   | m.bike    | mean  |
-|:---------------------:|:-----:|:-----:|:---------:|:-----:|
-| Render For CNN        | 5.16  | 8.53  | 13.46     | 9.05  |
-| Click-Here CNN        | 4.01  | 8.18  | 19.71     | 10.63 |
-
-It should be noted that the results for Click-Here are lower than reported in the paper and achieved through evaluating the outputs of the author provided for the paper.
-It seems that there is something incorrect with the current reimplementation and/or weight conversion. We are working on fixing this problem.
+|dataset    | plane | bike  | boat  | bottle| bus   | car   | chair |d.table| mbike | sofa  | train | tv    | mean  |
+|:---------:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|Pascal-Easy| 10.32 | 11.66 | 17.74 | 6.66  | 4.52  | 6.65  | 11.21 | 9.75  | 13.11 | 9.76  | 5.52  | 11.93 | 9.90  |
+|Pascal-Full| 11.52 | 15.33 | 19.33 | 8.51  | 5.54  | 9.39  | 13.83 | 12.87 | 14.90 | 13.03 | 8.96  | 13.72 | 12.24 |
 
 
-### Pascal3D - Vehicles - Fine-tuned Models
+### Pascal3D - Vehicles with Keypoints
+
+We evaluated the converted Render For CNN and Click-Here CNN models on Pascal3D-Vehicle.
+It should be noted that the results for Click-Here are lower than those achieved by running the author provided Caffe code.
+It seems that there is something incorrect with the current reimplementation and/or weight conversion.
+We are working on fixing this problem.
+
+#### Accuracy
+|                           |  bus  | car   | m.bike | mean  |
+|:-------------------------:|:-----:|:-----:|:------:|:-----:|
+| Render For CNN            | 89.26 | 74.36 | 81.93  | 81.85 |
+| Click-Here CNN            | 86.91 | 83.25 | 73.83  | 81.33 |
+| Click-Here CNN (reported) | 96.8  | 90.2  | 85.2   | 90.7  |
+
+#### Median Error
+|                           |  bus  | car   | m.bike | mean  |
+|:-------------------------:|:-----:|:-----:|:------:|:-----:|
+| Render For CNN            | 5.16  | 8.53  | 13.46  | 9.05  |
+| Click-Here CNN            | 4.01  | 8.18  | 19.71  | 10.63 |
+| Click-Here CNN (reported) | 2.63  | 4.98  | 11.4   | 6.35  |
 
 
+### Pascal3D - Vehicles with Keypoints (Fine-tuned Models)
+
+We fine-tuned both models on
+
+
+|                               |  bus  | car   | m.bike | mean  |
+|:-----------------------------:|:-----:|:-----:|:------:|:-----:|
+| Render For CNN FT (reported)  | 90.6  | 82.4  | 84.1   | 85.7  |
+| Click-Here CNN (reported)     | 96.8  | 90.2  | 85.2   | 90.7  |
+| Render For CNN FT             | 93.55 | 83.98 | 87.30  | 88.28 |
+| Click-Here CNN FT             | 92.97 | 89.84 | 81.25  | 88.02 |
+| Click-Here CNN FT-Attention   | 94.48 | 90.77 | 84.91  | 90.05 |
+
+
+#### Median Error
+
+|                               |  bus  | car   | m.bike | mean  |
+|:-----------------------------:|:-----:|:-----:|:------:|:-----:|
+| Render For CNN FT (reported)  | 2.93  | 5.63  | 11.7   | 6.74  |
+| Click-Here CNN (reported)     | 2.63  | 4.98  | 11.4   | 6.35  |
+| Render For CNN FT             | 3.04  | 5.83  | 11.95  | xx.xx |
+| Click-Here CNN FT             | 2.93  | 5.14  | 13.42  | 7.16  |
+| Click-Here CNN FT-Attention   | 2.88  | 5.24  | 12.10  | 6.74  |
+
+(Note: Finetuned weights will be uploaded soon)
 
 ### Training the model
 
