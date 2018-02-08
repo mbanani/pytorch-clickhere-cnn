@@ -132,7 +132,7 @@ We fine-tuned both models on
 |:-----------------------------:|:-----:|:-----:|:------:|:-----:|
 | Render For CNN FT (reported)  | 2.93  | 5.63  | 11.7   | 6.74  |
 | Click-Here CNN (reported)     | 2.63  | 4.98  | 11.4   | 6.35  |
-| Render For CNN FT             | 3.04  | 5.83  | 11.95  | xx.xx |
+| Render For CNN FT             | 3.04  | 5.83  | 11.95  | 6.94  |
 | Click-Here CNN FT             | 2.93  | 5.14  | 13.42  | 7.16  |
 | Click-Here CNN FT-Attention   | 2.88  | 5.24  | 12.10  | 6.74  |
 
