@@ -71,27 +71,27 @@ def main(args):
         assert False, "Error: Unknown choice for optimizer."
 
 
-    # if args.resume is not None:
-    #     print "Load pretrained Module at %s " % (args.resume)
-    #     checkpoint      = torch.load(args.resume)
-    #     args.best_loss  = checkpoint['val_loss']
-    #     args.best_acc   = checkpoint['val_acc']
-    #     start_epoch     = checkpoint['epoch']
-    #     start_step      = checkpoint['step']
-    #     state_dict      = checkpoint['state_dict']
-    #
-    #     print "Pretrained Model Val Accuracy is %f " % (args.best_acc)
-    #     # optimizer.load_state_dict(checkpoint['optimizer'])
-    #     from collections import OrderedDict
-    #     new_state_dict = OrderedDict()
-    #     for k, v in state_dict.items():
-    #         name = k[7:] # remove `module.`
-    #         new_state_dict[name] = v
-    #     # load params
-    #     model.load_state_dict(new_state_dict)
-    # else:
-    #     start_epoch     = 0
-    #     start_step      = 0
+    if args.resume is not None:
+        print "Loading pretrained Module at %s " % (args.resume)
+        checkpoint      = torch.load(args.resume)
+        args.best_loss  = checkpoint['val_loss']
+        args.best_acc   = checkpoint['val_acc']
+        start_epoch     = checkpoint['epoch']
+        start_step      = checkpoint['step']
+        state_dict      = checkpoint['state_dict']
+
+        print "Pretrained Model Val Accuracy is %f " % (args.best_acc)
+        # optimizer.load_state_dict(checkpoint['optimizer'])
+        # from collections import OrderedDict
+        # new_state_dict = OrderedDict()
+        # for k, v in state_dict.items():
+        #     name = k[7:] # remove `module.`
+        #     new_state_dict[name] = v
+        # load params
+        model.load_state_dict(state_dict)
+    else:
+        start_epoch     = 0
+        start_step      = 0
 
     # if args.world_size > 1:
     #     print "Parallelizing Model"
@@ -355,8 +355,8 @@ if __name__ == '__main__':
     parser.add_argument('--flip',            action="store_true",default=False)
     parser.add_argument('--just_attention',  action="store_true",default=False)
     parser.add_argument('--num_classes',     type=int, default=12)
+    parser.add_argument('--resume',           type=str, default=None)
     # parser.add_argument('--world_size',      type=int, default=1)
-    # parser.add_argument('--resume',           type=str, default=None)
 
 
     args = parser.parse_args()
