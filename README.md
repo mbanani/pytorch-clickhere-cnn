@@ -122,22 +122,22 @@ We fine-tuned both models on
 
 |                               |  bus  | car   | m.bike | mean  |
 |:-----------------------------:|:-----:|:-----:|:------:|:-----:|
-<!-- | Render For CNN FT (reported)  | 90.6  | 82.4  | 84.1   | 85.7  | -->
 | Render For CNN FT             | 93.55 | 83.98 | 87.30  | 88.28 |
 | Click-Here CNN FT             | 92.97 | 89.84 | 81.25  | 88.02 |
 | Click-Here CNN FT-Attention   | 94.48 | 90.77 | 84.91  | 90.05 |
 | Click-Here CNN (reported)     | 96.8  | 90.2  | 85.2   | 90.7  |
+<!-- | Render For CNN FT (reported)  | 90.6  | 82.4  | 84.1   | 85.7  | -->
 
 
 #### Median Error
 
 |                               |  bus  | car   | m.bike | mean  |
 |:-----------------------------:|:-----:|:-----:|:------:|:-----:|
-<!-- | Render For CNN FT (reported)  | 2.93  | 5.63  | 11.7   | 6.74  | -->
 | Render For CNN FT             | 3.04  | 5.83  | 11.95  | 6.94  |
 | Click-Here CNN FT             | 2.93  | 5.14  | 13.42  | 7.16  |
 | Click-Here CNN FT-Attention   | 2.88  | 5.24  | 12.10  | 6.74  |
 | Click-Here CNN (reported)     | 2.63  | 4.98  | 11.4   | 6.35  |
+<!-- | Render For CNN FT (reported)  | 2.93  | 5.63  | 11.7   | 6.74  | -->
 
 (Note: Fine-tuned weights will be uploaded soon)
 
