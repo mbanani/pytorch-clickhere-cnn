@@ -116,38 +116,35 @@ def main(args):
                                     step        = epoch * total_step,
                                     datasplit   = "train")
 
+
+            curr_loss, curr_wacc = eval_step(   model       = model,
+                                                data_loader = test_loader,
+                                                criterion   = criterion,
+                                                step        = epoch * total_step,
+                                                datasplit   = "test")
+
             if valid_loader != None:
                 curr_loss, curr_wacc = eval_step(   model       = model,
                                                     data_loader = valid_loader,
                                                     criterion   = criterion,
                                                     step        = epoch * total_step,
                                                     datasplit   = "valid")
-            else:
-                curr_loss = 0
-                curr_wacc = 0
-
-
-            _, _ = eval_step(   model       = model,
-                                data_loader = test_loader,
-                                criterion   = criterion,
-                                step        = epoch * total_step,
-                                datasplit   = "test")
 
 
 
         if args.evaluate_only:
             exit()
         #
-        # if epoch % args.save_epoch == 0 and epoch > 0:
-        #
-        #     args = save_checkpoint(  model      = model,
-        #                              optimizer  = optimizer,
-        #                              curr_epoch = epoch,
-        #                              curr_step  = (total_step * epoch),
-        #                              args       = args,
-        #                              curr_loss  = curr_loss,
-        #                              curr_acc   = curr_wacc,
-        #                              filename   = ('model@epoch%d.pkl' %(epoch)))
+        if epoch % args.save_epoch == 0 and epoch > 0:
+
+            args = save_checkpoint(  model      = model,
+                                     optimizer  = optimizer,
+                                     curr_epoch = epoch,
+                                     curr_step  = (total_step * epoch),
+                                     args       = args,
+                                     curr_loss  = curr_loss,
+                                     curr_acc   = curr_wacc,
+                                     filename   = ('model@epoch%d.pkl' %(epoch)))
 
         if args.optimizer == 'sgd':
             scheduler.step()
@@ -162,15 +159,15 @@ def main(args):
                     valid_loader = valid_loader,
                     valid_type   = "valid")
 
-    # # Final save of the model
-    # args = save_checkpoint(  model      = model,
-    #                          optimizer  = optimizer,
-    #                          curr_epoch = epoch,
-    #                          curr_step  = (total_step * epoch),
-    #                          args       = args,
-    #                          curr_loss  = curr_loss,
-    #                          curr_acc   = curr_wacc,
-    #                          filename   = ('model@epoch%d.pkl' %(epoch)))
+    # Final save of the model
+    args = save_checkpoint(  model      = model,
+                             optimizer  = optimizer,
+                             curr_epoch = epoch,
+                             curr_step  = (total_step * epoch),
+                             args       = args,
+                             curr_loss  = curr_loss,
+                             curr_acc   = curr_wacc,
+                             filename   = ('model@epoch%d.pkl' %(epoch)))
 
 def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loader = None, valid_type = "valid"):
     model.train()
@@ -311,8 +308,15 @@ def eval_step( model, data_loader,  criterion, step, datasplit):
     print "Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
     print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mean", np.mean(geo_dist_median),step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_mean", np.mean(type_accuracy),step=step)
+    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mean",   np.mean(geo_dist_median),step=step)
+    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_bus",    geo_dist_median[0],step=step)
+    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_car",    geo_dist_median[1],step=step)
+    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mbike",  geo_dist_median[2],step=step)
+
+    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_mean",     np.mean(type_accuracy),step=step)
+    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_bus",      type_accuracy[0],step=step)
+    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_car",      type_accuracy[1],step=step)
+    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_mbike",    type_accuracy[2],step=step)
 
     logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=step)
     logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=step)
@@ -330,7 +334,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # logging parameters
-    # parser.add_argument('--save_epoch',      type=int , default=10)
+    parser.add_argument('--save_epoch',      type=int , default=10)
     parser.add_argument('--eval_epoch',      type=int , default=1)
     parser.add_argument('--eval_step',       type=int , default=1000)
     parser.add_argument('--log_rate',        type=int, default=10)
