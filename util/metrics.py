@@ -6,9 +6,9 @@ from IPython import embed
 
 class kp_dict(object):
 
-    def __init__(self):
+    def __init__(self, num_classes = 12):
         self.keypoint_dict  = dict()
-        self.num_classes    = 12
+        self.num_classes    = num_classes
         self.class_ranges   = range(0, 360*(self.num_classes + 1), 360)
         self.threshold      = np.pi / 6.
 
@@ -96,7 +96,7 @@ class kp_dict(object):
             if type_total[i] > 0:
                 type_accuracy[i] = float(type_correct[i]) / type_total[i]
 
-        # self.calculate_performance_baselines()
+        self.calculate_performance_baselines()
         return type_accuracy, type_total, type_geo_dist
 
 
