@@ -84,9 +84,12 @@ class pascal3d(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-        # Load and transform label
-        # return img, azim, elev, tilt, obj_cls
-        return img, azim, elev, tilt, obj_cls, -1, -1, -1
+
+        # construct unique key for statistics -- only need to generate imid and year
+        _bb     = str(bbox[0]) + '-' + str(bbox[1]) + '-' + str(bbox[2]) + '-' + str(bbox[3])
+        key_uid = self.im_paths[index] + '_'  + _bb + '_objc' + str(obj_cls) + '_kpc' + str(0)
+
+        return img, azim, elev, tilt, obj_cls, -1, -1, key_uid
 
     def __len__(self):
         return self.num_instances
