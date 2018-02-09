@@ -1,7 +1,7 @@
 # pytorch-clickhere-cnn
 
 
-## To Do
+<!-- ## To Do -->
 
 <!-- - [x] Convert all links to relative paths!
 - [x] Include corrected links to weights! (check!)
@@ -15,9 +15,10 @@
 <!-- - [ ] Try to resolve dependence on util .. be more systematic about my imports! -->
 <!-- - [x] Test model save and resume -->
 <!-- - [x] Test Tensorflow logging -->
-- [ ] Train models from scratch!
+
+<!-- - [ ] Train models from scratch!
 - [ ] Fix parallelization
-- [ ] Dataset wrapper for Synthetic dataset
+- [ ] Dataset wrapper for Synthetic dataset -->
 
 ## Introduction
 
@@ -117,8 +118,10 @@ We are working on fixing this problem.
 
 ### Pascal3D - Vehicles with Keypoints (Fine-tuned Models)
 
-We fine-tuned both models on
-
+We fine-tuned both models on the Pascal 3D+ (Vehicles with Keypoints) dataset.
+Since we suspect that the problem with the replication of the Click-Here CNN model
+is in the attention section, we conducted an experiment where we only fine-tuned
+those weights. As reported below, fine-tuning just the attention model achieves the best performance.
 
 |                               |  bus  | car   | m.bike | mean  |
 |:-----------------------------:|:-----:|:-----:|:------:|:-----:|
@@ -151,4 +154,6 @@ This is an implementation of [Clickhere CNN](https://github.come/rszeto/click-he
 
 ## Acknowledgements
 
-We would like to thank Ryan Szeto, Hao Su, and Charles R. Qi for providing their code, and for their assistance with questions regarding reimplementing their work. We would also like to acknowledge [Kenta Iwasaki](https://discuss.pytorch.org/u/dranithix/summary) for his advice with loss function implementation, [Pete Tae Hoon Kim](https://discuss.pytorch.org/u/thnkim/summary) for his implementation of SpatialCrossMap LRN , and [Qi Fan](https://github.com/fanq15) for releasing [caffe_to_torch_to_pytorch](https://github.com/fanq15/caffe_to_torch_to_pytorch)
+We would like to thank Ryan Szeto, Hao Su, and Charles R. Qi for providing their code, and for their assistance with questions regarding reimplementing their work. We would also like to acknowledge [Kenta Iwasaki](https://discuss.pytorch.org/u/dranithix/summary) for his advice with loss function implementation, [Pete Tae Hoon Kim](https://discuss.pytorch.org/u/thnkim/summary) for his implementation of SpatialCrossMap LRN , and [Qi Fan](https://github.com/fanq15) for releasing [caffe_to_torch_to_pytorch](https://github.com/fanq15/caffe_to_torch_to_pytorch).
+
+This work has been partially supported by DARPA W32P4Q-15-C-0070 (subcontract from SoarTech) and funds from the University of Michigan Mobility Transformation Center.
