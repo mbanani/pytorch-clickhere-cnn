@@ -28,7 +28,11 @@ def main(args):
                                                     valid       = 0.0)
 
     print "#############  Initiate Model     ##############"
-    if args.model == 'clickhere':
+    if args.model == 'render':
+        assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
+        model = render4cnn(num_classes = args.num_classes)
+        args.no_keypoint = True
+    elif args.model == 'clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
         model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights), num_classes = args.num_classes)
         args.no_keypoint = False
@@ -265,7 +269,7 @@ def eval_step( model, data_loader,  criterion, step, datasplit):
     epoch_loss_e    = 0.
     epoch_loss_t    = 0.
     epoch_loss      = 0.
-    results_dict    = vp_dict()
+    results_dict    = kp_dict(args.num_classes)
 
     for i, (images, azim_label, elev_label, tilt_label, obj_class, kp_map, kp_class, key_uid) in enumerate(data_loader):
 
@@ -291,10 +295,13 @@ def eval_step( model, data_loader,  criterion, step, datasplit):
         epoch_loss_e += criterion(elev, elev_label, object_class).data[0]
         epoch_loss_t += criterion(tilt, tilt_label, object_class).data[0]
 
-        results_dict.update_dict( object_class.data.cpu().numpy(),
+        results_dict.update_dict( key_uid,
                             [azim.data.cpu().numpy(), elev.data.cpu().numpy(), tilt.data.cpu().numpy()],
                             [azim_label.data.cpu().numpy(), elev_label.data.cpu().numpy(), tilt_label.data.cpu().numpy()])
 
+        # results_dict.update_dict( object_class.data.cpu().numpy(),
+        #                     [azim.data.cpu().numpy(), elev.data.cpu().numpy(), tilt.data.cpu().numpy()],
+        #                     [azim_label.data.cpu().numpy(), elev_label.data.cpu().numpy(), tilt_label.data.cpu().numpy()])
 
     type_accuracy, type_total, type_geo_dist = results_dict.metrics()
 
