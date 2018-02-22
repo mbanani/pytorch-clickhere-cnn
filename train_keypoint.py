@@ -10,7 +10,7 @@ from IPython import embed
 import torch
 
 from util                       import ViewpointLoss, Logger, Paths
-from util                       import get_data_loaders, vp_dict, kp_dict
+from util                       import get_data_loaders, kp_dict #, vp_dict
 from models                     import clickhere_cnn, render4cnn
 from util.torch_utils           import to_var, save_checkpoint
 from torch.optim.lr_scheduler   import MultiStepLR

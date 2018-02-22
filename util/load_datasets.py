@@ -59,8 +59,7 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
                                 dataset_root= dataset_root,
                                 transform = train_transform,
                                 im_size = image_size,
-                                num_classes = num_classes,
-                                flip = True)
+                                num_classes = num_classes)
 
         test_set  = pascal3d_kp(csv_test,
                                 dataset_root= dataset_root,
@@ -72,7 +71,7 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
         csv_train = os.path.join(root_dir, 'data/pascal3d_kp_train.csv')
         csv_test  = os.path.join(root_dir, 'data/pascal3d_kp_valid.csv')
 
-        train_set = pascal3d_kp(csv_train, dataset_root= dataset_root, transform = train_transform, im_size = image_size, flip = flip)
+        train_set = pascal3d_kp(csv_train, dataset_root= dataset_root, transform = train_transform, im_size = image_size)
         test_set  = pascal3d_kp(csv_test,  dataset_root= dataset_root, transform = test_transform,  im_size = image_size)
     else:
         print "Error in load_datasets: Dataset name not defined."
