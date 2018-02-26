@@ -73,7 +73,7 @@ class render4cnn(nn.Module):
             fc7.weight.data.copy_(state_dict['19.1.weight'])
             fc7.bias.data.copy_(state_dict['19.1.bias'])
 
-            if num_classes == 3:
+            if num_classes == 3 and (state_dict['22.1.weight'].size()[0] > 360*3):
                 azim.weight.data.copy_( torch.cat([  state_dict['22.1.weight'][360*4:360*5, :],  state_dict['22.1.weight'][360*5:360*6, :], state_dict['22.1.weight'][360*8:360*9, :] ], dim = 0) )
                 elev.weight.data.copy_( torch.cat([  state_dict['24.1.weight'][360*4:360*5, :],  state_dict['24.1.weight'][360*5:360*6, :], state_dict['24.1.weight'][360*8:360*9, :] ], dim = 0) )
                 tilt.weight.data.copy_( torch.cat([  state_dict['26.1.weight'][360*4:360*5, :],  state_dict['26.1.weight'][360*5:360*6, :], state_dict['26.1.weight'][360*8:360*9, :] ], dim = 0) )
