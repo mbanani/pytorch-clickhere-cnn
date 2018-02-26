@@ -70,7 +70,9 @@ class clickhere_cnn(nn.Module):
             kp_fuse.weight.data.copy_(state_dict['fc-keypoint-concat']['weight'])
             kp_fuse.bias.data.copy_(state_dict['fc-keypoint-concat']['bias'])
 
-            if num_classes == 3:
+            embed()
+
+            if num_classes == 3 and (state_dict['pred_azimuth']['weight'].size()[0] > 360*3):
                 azim.weight.data.copy_( torch.cat([  state_dict['pred_azimuth'][  'weight'][360*4:360*5, :],  state_dict['pred_azimuth'][  'weight'][360*5:360*6, :], state_dict['pred_azimuth'][  'weight'][360*8:360*9, :] ], dim = 0) )
                 elev.weight.data.copy_( torch.cat([  state_dict['pred_elevation']['weight'][360*4:360*5, :],  state_dict['pred_elevation']['weight'][360*5:360*6, :], state_dict['pred_elevation']['weight'][360*8:360*9, :] ], dim = 0) )
                 tilt.weight.data.copy_( torch.cat([  state_dict['pred_tilt'][     'weight'][360*4:360*5, :],  state_dict['pred_tilt'][     'weight'][360*5:360*6, :], state_dict['pred_tilt'][     'weight'][360*8:360*9, :] ], dim = 0) )
