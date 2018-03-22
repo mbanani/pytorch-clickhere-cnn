@@ -146,6 +146,11 @@ class pascal3d_kp(torch.utils.data.Dataset):
 
                 # Convert to RGB, crop, and resize
                 img = img.convert('RGB')
+
+                # Convert to BGR from RGB
+                r, g, b = img.split()
+                img = Image.merge("RGB", (b, g, r))
+
                 img = img.crop(box=bbox)
                 img = img.resize( (self.img_size, self.img_size), Image.LANCZOS)
 

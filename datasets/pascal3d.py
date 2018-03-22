@@ -113,6 +113,10 @@ class pascal3d(data.Dataset):
             with Image.open(f) as img:
                 img = img.convert('RGB')
 
+                # Convert to BGR from RGB
+                r, g, b = img.split()
+                img = Image.merge("RGB", (b, g, r))
+
                 img = img.crop(box=bbox)
 
                 # verify that imresize uses LANCZOS
