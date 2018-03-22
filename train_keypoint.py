@@ -18,6 +18,7 @@ from torch.optim.lr_scheduler   import MultiStepLR
 def main(args):
     initialization_time = time.time()
 
+
     print "#############  Read in Database   ##############"
     train_loader, valid_loader, test_loader = get_data_loaders(   dataset     = args.dataset,
                                                     batch_size  = args.batch_size,
@@ -25,7 +26,8 @@ def main(args):
                                                     model       = args.model,
                                                     flip        = args.flip,
                                                     num_classes = args.num_classes,
-                                                    valid       = 0.0)
+                                                    valid       = 0.0,
+                                                    parallel    = (args.world_size > 1))
 
     print "#############  Initiate Model     ##############"
     if args.model == 'render':
@@ -97,12 +99,12 @@ def main(args):
         start_epoch     = 0
         start_step      = 0
 
-    # if args.world_size > 1:
-    #     print "Parallelizing Model"
-    #     model = torch.nn.DataParallel(model, device_ids = range(0, args.world_size))
-
-    # Train on GPU if available
-    if torch.cuda.is_available():
+    if args.world_size > 1:
+        print "Parallelizing Model"
+        if torch.cuda.is_available():
+            model = torch.nn.DataParallel(model, device_ids = range(0, args.world_size)).cuda()
+    elif torch.cuda.is_available():
+        # Train on GPU if available
         model.cuda()
 
 
@@ -118,7 +120,8 @@ def main(args):
                                     data_loader = train_loader,
                                     criterion   = criterion,
                                     step        = epoch * total_step,
-                                    datasplit   = "train")
+                                    datasplit   = "train",
+                                    with_dropout = True)
 
 
             curr_loss, curr_wacc = eval_step(   model       = model,
@@ -164,14 +167,14 @@ def main(args):
                     valid_type   = "valid")
 
     # Final save of the model
-    args = save_checkpoint(  model      = model,
-                             optimizer  = optimizer,
-                             curr_epoch = epoch,
-                             curr_step  = (total_step * epoch),
-                             args       = args,
-                             curr_loss  = curr_loss,
-                             curr_acc   = curr_wacc,
-                             filename   = ('model@epoch%d.pkl' %(epoch)))
+    args = save_checkpoint( model      = model,
+                            optimizer  = optimizer,
+                            curr_epoch = epoch,
+                            curr_step  = (total_step * epoch),
+                            args       = args,
+                            curr_loss  = curr_loss,
+                            curr_acc   = curr_wacc,
+                            filename   = ('model@epoch%d.pkl' %(epoch)))
 
 def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loader = None, valid_type = "valid"):
     model.train()
@@ -261,8 +264,10 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
             model.train()
 
 
-def eval_step( model, data_loader,  criterion, step, datasplit):
-    model.eval()
+def eval_step( model, data_loader,  criterion, step, datasplit, with_dropout = False):
+    if not with_dropout:
+        model.eval()
+
     total_step      = len(data_loader)
     start_time      = time.time()
     epoch_loss_a    = 0.
@@ -361,9 +366,10 @@ if __name__ == '__main__':
     parser.add_argument('--evaluate_train',  action="store_true",default=False)
     parser.add_argument('--flip',            action="store_true",default=False)
     parser.add_argument('--just_attention',  action="store_true",default=False)
-    parser.add_argument('--num_classes',     type=int, default=12)
-    parser.add_argument('--resume',           type=str, default=None)
-    # parser.add_argument('--world_size',      type=int, default=1)
+    parser.add_argument('--num_classes',     type=int, default=3)
+    parser.add_argument('--resume',          type=str, default=None)
+    parser.add_argument('--world_size',      type=int, default=1)
+    parser.add_argument('--main',            action="store_true",default=False)
 
 
     args = parser.parse_args()
@@ -377,13 +383,14 @@ if __name__ == '__main__':
     args.best_acc               = 0.
 
     # Create model directory
-    if not os.path.exists(experiment_result_dir):
-        os.makedirs(experiment_result_dir)
-    if not os.path.exists(args.experiment_path):
-        os.makedirs(args.experiment_path)
+    if main:
+        if not os.path.exists(experiment_result_dir):
+            os.makedirs(experiment_result_dir)
+        if not os.path.exists(args.experiment_path):
+            os.makedirs(args.experiment_path)
 
-    print "Experiment path is : ", args.experiment_path
-    print(args)
+        print "Experiment path is : ", args.experiment_path
+        print(args)
 
     # Define Logger
     log_name    = args.full_experiment_name

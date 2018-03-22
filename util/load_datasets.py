@@ -3,12 +3,16 @@ import torch
 import numpy                    as np
 import torchvision.transforms   as transforms
 from datasets                   import pascal3d, pascal3d_kp
+import torch.utils.data.distributed
+
+from IPython import embed
+
 
 root_dir     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dataset_root = '/z/home/mbanani/datasets/pascal3d'
 
 
-def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, flip = False, valid = 0.0):
+def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, flip = False, valid = 0.0, parallel = False):
 
     image_size = 227
     train_transform   = transforms.Compose([transforms.ToTensor(),
@@ -86,13 +90,18 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
         train_set.augment()
         print "Augmented Training Dataset - size : ", train_set.num_instances
 
+    # Parallelize model
+    train_sampler = None
+    # if parallel:
+    #     train_sampler = torch.utils.data.distributed.DistributedSampler(train_set)
 
     # Generate data loaders
-    train_loader = torch.utils.data.DataLoader( dataset=train_set,
-                                                batch_size=batch_size,
-                                                shuffle=True,
-                                                num_workers=num_workers,
-                                                drop_last = True)
+    train_loader = torch.utils.data.DataLoader( dataset     =train_set,
+                                                batch_size  =batch_size,
+                                                shuffle     = (train_sampler is None),
+                                                sampler     = train_sampler,
+                                                num_workers =num_workers,
+                                                drop_last   = True)
 
     test_loader  = torch.utils.data.DataLoader( dataset=test_set,
                                                 batch_size=batch_size,
