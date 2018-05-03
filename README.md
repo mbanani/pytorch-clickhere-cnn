@@ -38,6 +38,21 @@ Add the repository to your python path:
 
         export PYTHONPATH=$PYTHONPATH:$(pwd)
 
+### Dependencies
+
+We recommend using Conda to run our code. If you're using conda, you can run the command next to each dependency to install it:
+
+- PyTorch 0.4   `conda install torchvision -c pytorch`
+- Torch Vision  `conda install torchvision -c pytorch`
+- TensorboardX  `pip install tensorboardX`
+- IPython       `pip install IPython`
+- SciPy         `pip install scipy`
+- pandas        `pip install pandas`
+
+
+
+
+
 
 ### Generating the data
 Download the [Pascal 3D+ dataset](http://cvgl.stanford.edu/projects/pascal3d.html) (Release 1.1).
