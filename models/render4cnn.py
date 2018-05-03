@@ -2,16 +2,12 @@ import torch
 import torch.nn as nn
 from torch.autograd import Function, Variable
 
-from functools                              import reduce
-from torch.legacy.nn.Module                 import Module as LegacyModule
-from torch.legacy.nn.utils                  import clear
-from torch.nn._functions.thnn.normalization import CrossMapLRN2d
 
 import numpy as np
 
 
 class render4cnn(nn.Module):
-    def __init__(self, finetune=False, weights = None, num_classes = 12):
+    def __init__(self, finetune=False, num_classes = 12):
         super(render4cnn, self).__init__()
 
         # Normalization layers
