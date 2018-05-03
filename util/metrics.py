@@ -131,7 +131,7 @@ class kp_dict(object):
             if type_total[i] > 0:
                 type_accuracy[i] = float(type_correct[i]) / type_total[i]
 
-        self.calculate_performance_baselines()
+        # self.calculate_performance_baselines()
         return type_accuracy, type_total, type_geo_dist
 
 
