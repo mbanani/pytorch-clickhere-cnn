@@ -13,8 +13,10 @@ import torch.nn.functional as F
 from torch import nn
 import numpy as np
 
+from IPython import embed
+
 class ViewpointLoss(nn.Module):
-    def __init__(self, num_classes = 12, class_period = 360, mean = True, weights = None):
+    def __init__(self, num_classes = 12, class_period = 360, mean = False, weights = None):
         weights = None
         super(ViewpointLoss, self).__init__()
         self.num_classes = num_classes
@@ -31,9 +33,9 @@ class ViewpointLoss(nn.Module):
         """
         # Set absolute minimum for numerical stability (assuming float16 - 6x10^-5)
         # preds = F.softmax(preds.float())
-        _min_float  = 1e-6
-        batch_size  = preds.size(0)
-        preds       = preds.clamp( min = _min_float)
+        # _min_float  = 1e-6
+        # preds       = preds.clamp( min = _min_float)
+        preds       = preds.float()
         labels      = labels.float()
         loss        = torch.zeros(1)
         # weights     = torch.from_numpy(self.weights).float()
@@ -47,18 +49,19 @@ class ViewpointLoss(nn.Module):
         obj_classes = obj_classes.data.cpu().numpy()
 
 
-        for inst_id in range(batch_size):
+        for inst_id in range(preds.size(0)):
             start_index = obj_classes[inst_id] * self.class_period
             end_index   = start_index + self.class_period
-            if self.mean:
-                # loss += (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index] / preds[inst_id, start_index:end_index].abs().sum())).mean()
-                # loss += weights[obj_classes[inst_id]] * (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1)).mean()
-                loss += (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1)).mean()
-            else:
-                # loss += (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index] / preds[inst_id, start_index:end_index].abs().sum())).sum()
-                loss += (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1)).sum()
-                # loss += weights[obj_classes[inst_id]] * (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1)).sum()
+            # if self.mean:
+            #     # loss += (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index] / preds[inst_id, start_index:end_index].abs().sum())).mean()
+            #     # loss += weights[obj_classes[inst_id]] * (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1)).mean()
+            #     loss -= (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1)).mean()
+            # else:
+            #     # loss += (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index] / preds[inst_id, start_index:end_index].abs().sum())).sum()
+            #     # loss += weights[obj_classes[inst_id]] * (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1)).sum()
 
-        loss = loss * -1
+            loss -= (labels[inst_id, start_index:end_index] * F.log_softmax(preds[inst_id, start_index:end_index], dim=-1) ).mean()
+        # print(loss)
 
-        return loss
+
+        return loss / preds.size(0)
