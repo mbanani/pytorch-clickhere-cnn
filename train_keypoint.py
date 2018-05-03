@@ -9,11 +9,13 @@ from IPython import embed
 
 import torch
 
-from util                       import ViewpointLoss, Logger, Paths
+from util                       import ViewpointLoss, Paths
 from util                       import get_data_loaders, kp_dict #, vp_dict
 from models                     import clickhere_cnn, render4cnn
 from util.torch_utils           import to_var, save_checkpoint
 from torch.optim.lr_scheduler   import MultiStepLR
+from tensorboardX               import SummaryWriter as Logger
+
 
 def main(args):
     initialization_time = time.time()
@@ -32,23 +34,29 @@ def main(args):
     print("#############  Initiate Model     ##############")
     if args.model == 'render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(num_classes = args.num_classes)
+        weights = None
+        model = render4cnn(weights = weights, num_classes = args.num_classes)
         args.no_keypoint = True
     elif args.model == 'clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights), num_classes = args.num_classes)
-        args.no_keypoint = False
-    elif args.model == 'pretrained_clickhere':
-        assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = clickhere_cnn(render4cnn(), weights_path = Paths.clickhere_weights, num_classes = args.num_classes)
+        weights = torch.load(Paths.render4cnn_weights)
+        model = clickhere_cnn(weights = weights, num_classes = args.num_classes)
         args.no_keypoint = False
     elif args.model == 'pretrained_render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, num_classes = args.num_classes)
+        model = render4cnn(num_classes = args.num_classes)
+        weights = torch.load(Paths.render4cnn_weights)
+        model.load_state_dict(weights['model_state_dict'])
         args.no_keypoint = True
+    elif args.model == 'pretrained_clickhere':
+        assert Paths.clickhere_weights != None, "Error: Set clickhere_weights weights path in util/Paths.py."
+        model   = clickhere_cnn(num_classes = args.num_classes)
+        weights = torch.load(Paths.clickhere_weights)
+        model.load_state_dict(weights['model_state_dict'])
+        args.no_keypoint = False
     elif args.model == 'pretrained_FTrender':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = 'npy', weights_path = Paths.ft_render4cnn_weights, num_classes = args.num_classes)
+        model = render4cnn(weights = Paths.ft_render4cnn_weights, num_classes = args.num_classes)
         args.no_keypoint = True
     else:
         assert False, "Error: unknown model choice."
@@ -156,7 +164,7 @@ def main(args):
         if args.optimizer == 'sgd':
             scheduler.step()
 
-        logger.add_scalar_value("Misc/Epoch Number", epoch, step=epoch * total_step)
+        logger.add_scalar("Misc/Epoch Number", epoch, epoch * total_step)
         train_step( model        = model,
                     train_loader = train_loader,
                     criterion    = criterion,
@@ -220,10 +228,10 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
         optimizer.step()
 
         # Log losses
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_azim",  loss_a.data[0] , step=step + i)
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_elev",  loss_e.data[0] , step=step + i)
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_tilt",  loss_t.data[0] , step=step + i)
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_sum", loss.data[0] , step=step + i)
+        logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/train_azim",  loss_a.data[0] , step + i)
+        logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/train_elev",  loss_e.data[0] , step + i)
+        logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/train_tilt",  loss_t.data[0] , step + i)
+        logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/train_sum", loss.data[0] ,     step + i)
 
         processing_time += time.time() - training_time
 
@@ -242,10 +250,10 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
                                                                                                                         curr_batch_time,
                                                                                                                         curr_time_left / 60.))
 
-            logger.add_scalar_value("Misc/batch time (s)",    curr_batch_time,        step=step + i)
-            logger.add_scalar_value("Misc/Train_%",           curr_train_per,         step=step + i)
-            logger.add_scalar_value("Misc/epoch time (min)",  curr_epoch_time / 60.,  step=step + i)
-            logger.add_scalar_value("Misc/time left (min)",   curr_time_left / 60.,   step=step + i)
+            logger.add_scalar("Misc/batch time (s)",    curr_batch_time,        step + i)
+            logger.add_scalar("Misc/Train_%",           curr_train_per,         step + i)
+            logger.add_scalar("Misc/epoch time (min)",  curr_epoch_time / 60.,  step + i)
+            logger.add_scalar("Misc/time left (min)",   curr_time_left / 60.,   step + i)
 
             # Reset counters
             counter = 0
@@ -296,9 +304,9 @@ def eval_step( model, data_loader,  criterion, step, datasplit, with_dropout = F
 
         # embed()
         object_class  = to_var(obj_class)
-        epoch_loss_a += criterion(azim, azim_label, object_class).data[0]
-        epoch_loss_e += criterion(elev, elev_label, object_class).data[0]
-        epoch_loss_t += criterion(tilt, tilt_label, object_class).data[0]
+        epoch_loss_a += float(criterion(azim, azim_label, object_class).data[0].cpu().numpy())
+        epoch_loss_e += float(criterion(elev, elev_label, object_class).data[0].cpu().numpy())
+        epoch_loss_t += float(criterion(tilt, tilt_label, object_class).data[0].cpu().numpy())
 
         results_dict.update_dict( key_uid,
                             [azim.data.cpu().numpy(), elev.data.cpu().numpy(), tilt.data.cpu().numpy()],
@@ -314,26 +322,27 @@ def eval_step( model, data_loader,  criterion, step, datasplit, with_dropout = F
     type_accuracy   = [ type_accuracy[i] * 100. for i in range(0, len(type_accuracy)) if  type_total[i] > 0]
     w_acc           = np.mean(type_accuracy)
 
+
     print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     print("Type Acc_pi/6 : ", type_accuracy, " -> ", w_acc, " %")
     print("Type Median   : ", [ int(1000 * a_type_med) / 1000. for a_type_med in geo_dist_median ], " -> ", int(1000 * np.mean(geo_dist_median)) / 1000., " degrees")
     print("Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step)
     print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    #
+    # logger.add_scalar("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mean",   np.mean(geo_dist_median),step)
+    # logger.add_scalar("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_bus",    geo_dist_median[0],step)
+    # logger.add_scalar("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_car",    geo_dist_median[1],step)
+    # logger.add_scalar("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mbike",  geo_dist_median[2],step)
+    #
+    # logger.add_scalar("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_mean",     np.mean(type_accuracy),step)
+    # logger.add_scalar("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_bus",      type_accuracy[0],step)
+    # logger.add_scalar("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_car",      type_accuracy[1],step)
+    # logger.add_scalar("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_mbike",    type_accuracy[2],step)
 
-    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mean",   np.mean(geo_dist_median),step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_bus",    geo_dist_median[0],step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_car",    geo_dist_median[1],step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mbike",  geo_dist_median[2],step=step)
-
-    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_mean",     np.mean(type_accuracy),step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_bus",      type_accuracy[0],step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_car",      type_accuracy[1],step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Accuracy_30deg/" + datasplit + "_mbike",    type_accuracy[2],step=step)
-
-    logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step=step)
-    logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_sum",   (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step=step)
+    logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_azim",  epoch_loss_a / total_step, step)
+    logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_elev",  epoch_loss_e / total_step, step)
+    logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_tilt",  epoch_loss_t / total_step, step)
+    logger.add_scalar("(" + args.dataset + ") Viewpoint Loss/" + datasplit +"_sum",   (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step, step)
 
     epoch_loss = float(epoch_loss)
     assert type(epoch_loss) == float, 'Error: Loss type is not float'
