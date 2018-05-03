@@ -35,7 +35,7 @@ def main(args):
     if args.model == 'render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
         weights = None
-        model = render4cnn(weights = weights, num_classes = args.num_classes)
+        model = render4cnn(num_classes = args.num_classes)
         args.no_keypoint = True
     elif args.model == 'clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
@@ -47,6 +47,7 @@ def main(args):
         model = render4cnn(num_classes = args.num_classes)
         weights = torch.load(Paths.render4cnn_weights)
         model.load_state_dict(weights['model_state_dict'])
+        embed()
         args.no_keypoint = True
     elif args.model == 'pretrained_clickhere':
         assert Paths.clickhere_weights != None, "Error: Set clickhere_weights weights path in util/Paths.py."
@@ -54,10 +55,10 @@ def main(args):
         weights = torch.load(Paths.clickhere_weights)
         model.load_state_dict(weights['model_state_dict'])
         args.no_keypoint = False
-    elif args.model == 'pretrained_FTrender':
-        assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = Paths.ft_render4cnn_weights, num_classes = args.num_classes)
-        args.no_keypoint = True
+    # elif args.model == 'pretrained_FTrender':
+    #     assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
+    #     model = render4cnn(weights = Paths.ft_render4cnn_weights, num_classes = args.num_classes)
+    #     args.no_keypoint = True
     else:
         assert False, "Error: unknown model choice."
 
