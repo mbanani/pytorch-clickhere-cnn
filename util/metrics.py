@@ -44,7 +44,7 @@ class kp_dict(object):
     def __init__(self, num_classes = 12):
         self.keypoint_dict  = dict()
         self.num_classes    = num_classes
-        self.class_ranges   = range(0, 360*(self.num_classes + 1), 360)
+        self.class_ranges   = list(range(0, 360*(self.num_classes + 1), 360))
         self.threshold      = np.pi / 6.
 
     """
@@ -76,20 +76,20 @@ class kp_dict(object):
                             labels[2][i, start_index:end_index])
 
 
-            if image in self.keypoint_dict.keys():
+            if image in list(self.keypoint_dict.keys()):
                 self.keypoint_dict[image][kp_class] = pred_probs
             else:
                 self.keypoint_dict[image] = {'class' : obj_class, 'label' : label_probs, kp_class : pred_probs}
 
 
     def calculate_geo_performance(self):
-        for image in self.keypoint_dict.keys():
+        for image in list(self.keypoint_dict.keys()):
             curr_label = [  np.argmax(self.keypoint_dict[image]['label'][0]),
                             np.argmax(self.keypoint_dict[image]['label'][1]),
                             np.argmax(self.keypoint_dict[image]['label'][2])]
             self.keypoint_dict[image]['geo_dist'] = dict()
             self.keypoint_dict[image]['correct'] = dict()
-            for kp in self.keypoint_dict[image].keys():
+            for kp in list(self.keypoint_dict[image].keys()):
                 if type(kp) != str :
                     curr_pred = [   np.argmax(self.keypoint_dict[image][kp][0]),
                                     np.argmax(self.keypoint_dict[image][kp][1]),
@@ -104,12 +104,12 @@ class kp_dict(object):
         type_correct    = np.zeros(self.num_classes, dtype=np.float32)
         type_total      = np.zeros(self.num_classes, dtype=np.float32)
 
-        for image in self.keypoint_dict.keys():
+        for image in list(self.keypoint_dict.keys()):
             object_type = self.keypoint_dict[image]['class']
             curr_correct = 0.
             curr_total   = 0.
             curr_geodist = []
-            for kp in self.keypoint_dict[image]['correct'].keys():
+            for kp in list(self.keypoint_dict[image]['correct'].keys()):
                 curr_correct += self.keypoint_dict[image]['correct'][kp]
                 curr_total   += 1.
                 curr_geodist.append(self.keypoint_dict[image]['geo_dist'][kp])
@@ -151,10 +151,10 @@ class kp_dict(object):
         unique_perf_prior  = [0.] * 34
 
         #iterate over batch
-        for image in self.keypoint_dict.keys():
+        for image in list(self.keypoint_dict.keys()):
             obj_cls = self.keypoint_dict[image]['class']
 
-            perf = [self.keypoint_dict[image]['geo_dist'][kp] for kp in self.keypoint_dict[image]['geo_dist'].keys()]
+            perf = [self.keypoint_dict[image]['geo_dist'][kp] for kp in list(self.keypoint_dict[image]['geo_dist'].keys())]
 
             # Append baselines
             best_baseline[obj_cls  ].append(np.min(perf))
@@ -166,7 +166,7 @@ class kp_dict(object):
 
             # Calculate Prior
             best_perf = np.min(perf)
-            for kp in self.keypoint_dict[image]['geo_dist'].keys():
+            for kp in list(self.keypoint_dict[image]['geo_dist'].keys()):
                 freq_prior[kp] += 1.
                 bperf       = 0
                 bperf_kp    = 1
@@ -184,8 +184,8 @@ class kp_dict(object):
         aperf_rank = np.argsort(perf_prior)[::-1]
         uperf_rank = np.argsort(unique_perf_prior)[::-1]
 
-        for image in self.keypoint_dict.keys():
-            kp_ind         = self.keypoint_dict[image]['geo_dist'].keys()
+        for image in list(self.keypoint_dict.keys()):
+            kp_ind         = list(self.keypoint_dict[image]['geo_dist'].keys())
 
             top_freq_kp    = [k for k in freq_rank  if k in set(kp_ind)][0]
             top_aperf_kp   = [k for k in aperf_rank if k in set(kp_ind)][0]
@@ -222,28 +222,28 @@ class kp_dict(object):
 
         # difference_max_min = np.ndarray([])
 
-        print "--------------------------------------------"
-        print "Accuracy "
-        print "worst     : ", accuracy_worst  , " -- mean : ", np.round(np.mean(accuracy_worst  ), decimals = 2)
-        print "median    : ", accuracy_median , " -- mean : ", np.round(np.mean(accuracy_median ), decimals = 2)
-        print "best      : ", accuracy_best   , " -- mean : ", np.round(np.mean(accuracy_best   ), decimals = 2)
-        print ""
-        print "freq      : ", accuracy_freq    , " -- mean : ", np.round(np.mean(accuracy_freq ), decimals = 2)
-        print "a_perf    : ", accuracy_aperf   , " -- mean : ", np.round(np.mean(accuracy_aperf   ), decimals = 2)
-        print "u_perf    : ", accuracy_uperf   , " -- mean : ", np.round(np.mean(accuracy_uperf   ), decimals = 2)
-        print ""
-        print "mean      : ", accuracy_mean   , " -- mean : ", np.round(np.mean(accuracy_mean   ), decimals = 2)
-        print "total     : ", accuracy_total  , " -- mean : ", np.round(np.mean(accuracy_total  ), decimals = 2)
-        print ""
-        print "Median Error "
-        print "worst     : ", medError_worst  , " -- mean : ",  np.round(np.mean(medError_worst  ), decimals = 2)
-        print "median    : ", medError_median , " -- mean : ",  np.round(np.mean(medError_median ), decimals = 2)
-        print "best      : ", medError_best   , " -- mean : ",  np.round(np.mean(medError_best   ), decimals = 2)
-        print ""
-        print "freq      : ", medError_freq    , " -- mean : ", np.round(np.mean(medError_freq ), decimals = 2)
-        print "a_perf    : ", medError_aperf   , " -- mean : ", np.round(np.mean(medError_aperf   ), decimals = 2)
-        print "u_perf    : ", medError_uperf   , " -- mean : ", np.round(np.mean(medError_uperf   ), decimals = 2)
-        print ""
-        print "mean      : ", medError_mean   , " -- mean : ",  np.round(np.mean(medError_mean   ), decimals = 2)
-        print "total     : ", medError_total  , " -- mean : ",  np.round(np.mean(medError_total  ), decimals = 2)
-        print "--------------------------------------------"
+        print("--------------------------------------------")
+        print("Accuracy ")
+        print("worst     : ", accuracy_worst  , " -- mean : ", np.round(np.mean(accuracy_worst  ), decimals = 2))
+        print("median    : ", accuracy_median , " -- mean : ", np.round(np.mean(accuracy_median ), decimals = 2))
+        print("best      : ", accuracy_best   , " -- mean : ", np.round(np.mean(accuracy_best   ), decimals = 2))
+        print("")
+        print("freq      : ", accuracy_freq    , " -- mean : ", np.round(np.mean(accuracy_freq ), decimals = 2))
+        print("a_perf    : ", accuracy_aperf   , " -- mean : ", np.round(np.mean(accuracy_aperf   ), decimals = 2))
+        print("u_perf    : ", accuracy_uperf   , " -- mean : ", np.round(np.mean(accuracy_uperf   ), decimals = 2))
+        print("")
+        print("mean      : ", accuracy_mean   , " -- mean : ", np.round(np.mean(accuracy_mean   ), decimals = 2))
+        print("total     : ", accuracy_total  , " -- mean : ", np.round(np.mean(accuracy_total  ), decimals = 2))
+        print("")
+        print("Median Error ")
+        print("worst     : ", medError_worst  , " -- mean : ",  np.round(np.mean(medError_worst  ), decimals = 2))
+        print("median    : ", medError_median , " -- mean : ",  np.round(np.mean(medError_median ), decimals = 2))
+        print("best      : ", medError_best   , " -- mean : ",  np.round(np.mean(medError_best   ), decimals = 2))
+        print("")
+        print("freq      : ", medError_freq    , " -- mean : ", np.round(np.mean(medError_freq ), decimals = 2))
+        print("a_perf    : ", medError_aperf   , " -- mean : ", np.round(np.mean(medError_aperf   ), decimals = 2))
+        print("u_perf    : ", medError_uperf   , " -- mean : ", np.round(np.mean(medError_uperf   ), decimals = 2))
+        print("")
+        print("mean      : ", medError_mean   , " -- mean : ",  np.round(np.mean(medError_mean   ), decimals = 2))
+        print("total     : ", medError_total  , " -- mean : ",  np.round(np.mean(medError_total  ), decimals = 2))
+        print("--------------------------------------------")

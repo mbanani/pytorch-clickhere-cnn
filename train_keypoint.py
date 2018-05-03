@@ -19,7 +19,7 @@ def main(args):
     initialization_time = time.time()
 
 
-    print "#############  Read in Database   ##############"
+    print("#############  Read in Database   ##############")
     train_loader, valid_loader, test_loader = get_data_loaders(   dataset     = args.dataset,
                                                     batch_size  = args.batch_size,
                                                     num_workers = args.num_workers,
@@ -29,7 +29,7 @@ def main(args):
                                                     valid       = 0.0,
                                                     parallel    = (args.world_size > 1))
 
-    print "#############  Initiate Model     ##############"
+    print("#############  Initiate Model     ##############")
     if args.model == 'render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
         model = render4cnn(num_classes = args.num_classes)
@@ -71,14 +71,14 @@ def main(args):
     elif args.optimizer == 'sgd':
         optimizer = torch.optim.SGD(params, lr=args.lr, momentum = 0.9, weight_decay = 0.0005)
         scheduler = MultiStepLR( optimizer,
-                                 milestones=range(0, args.num_epochs, 5),
+                                 milestones=list(range(0, args.num_epochs, 5)),
                                  gamma=0.95)
     else:
         assert False, "Error: Unknown choice for optimizer."
 
 
     if args.resume is not None:
-        print "Loading pretrained Module at %s " % (args.resume)
+        print("Loading pretrained Module at %s " % (args.resume))
         checkpoint      = torch.load(args.resume)
         args.best_loss  = checkpoint['val_loss']
         args.best_acc   = checkpoint['val_acc']
@@ -86,7 +86,7 @@ def main(args):
         start_step      = checkpoint['step']
         state_dict      = checkpoint['state_dict']
 
-        print "Pretrained Model Val Accuracy is %f " % (args.best_acc)
+        print("Pretrained Model Val Accuracy is %f " % (args.best_acc))
         # optimizer.load_state_dict(checkpoint['optimizer'])
         # from collections import OrderedDict
         # new_state_dict = OrderedDict()
@@ -100,16 +100,16 @@ def main(args):
         start_step      = 0
 
     if args.world_size > 1:
-        print "Parallelizing Model"
+        print("Parallelizing Model")
         if torch.cuda.is_available():
-            model = torch.nn.DataParallel(model, device_ids = range(0, args.world_size)).cuda()
+            model = torch.nn.DataParallel(model, device_ids = list(range(0, args.world_size))).cuda()
     elif torch.cuda.is_available():
         # Train on GPU if available
         model.cuda()
 
 
-    print "Time to initialize take: ", time.time() - initialization_time
-    print "#############  Start Training     ##############"
+    print("Time to initialize take: ", time.time() - initialization_time)
+    print("#############  Start Training     ##############")
     total_step = len(train_loader)
 
     for epoch in range(0, args.num_epochs):
@@ -236,11 +236,11 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
             curr_epoch_time = (time.time() - epoch_time) * (total_step / (i+1.))
             curr_time_left  = (time.time() - epoch_time) * ((total_step - i) / (i+1.))
 
-            print "Epoch [%d/%d] Step [%d/%d]: Training Loss = %2.5f, Batch Time = %.2f sec, Time Left = %.1f mins." %( epoch, args.num_epochs,
+            print("Epoch [%d/%d] Step [%d/%d]: Training Loss = %2.5f, Batch Time = %.2f sec, Time Left = %.1f mins." %( epoch, args.num_epochs,
                                                                                                                         i, total_step,
                                                                                                                         loss_sum / float(counter),
                                                                                                                         curr_batch_time,
-                                                                                                                        curr_time_left / 60.)
+                                                                                                                        curr_time_left / 60.))
 
             logger.add_scalar_value("Misc/batch time (s)",    curr_batch_time,        step=step + i)
             logger.add_scalar_value("Misc/Train_%",           curr_train_per,         step=step + i)
@@ -279,7 +279,7 @@ def eval_step( model, data_loader,  criterion, step, datasplit, with_dropout = F
     for i, (images, azim_label, elev_label, tilt_label, obj_class, kp_map, kp_class, key_uid) in enumerate(data_loader):
 
         if i % args.log_rate == 0:
-            print "Evaluation of %s [%d/%d] Time Elapsed: %f " % (datasplit, i, total_step, time.time() - start_time)
+            print("Evaluation of %s [%d/%d] Time Elapsed: %f " % (datasplit, i, total_step, time.time() - start_time))
 
         images = to_var(images, volatile=True)
         azim_label = to_var(azim_label, volatile=True)
@@ -314,11 +314,11 @@ def eval_step( model, data_loader,  criterion, step, datasplit, with_dropout = F
     type_accuracy   = [ type_accuracy[i] * 100. for i in range(0, len(type_accuracy)) if  type_total[i] > 0]
     w_acc           = np.mean(type_accuracy)
 
-    print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    print "Type Acc_pi/6 : ", type_accuracy, " -> ", w_acc, " %"
-    print "Type Median   : ", [ int(1000 * a_type_med) / 1000. for a_type_med in geo_dist_median ], " -> ", int(1000 * np.mean(geo_dist_median)) / 1000., " degrees"
-    print "Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step
-    print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("Type Acc_pi/6 : ", type_accuracy, " -> ", w_acc, " %")
+    print("Type Median   : ", [ int(1000 * a_type_med) / 1000. for a_type_med in geo_dist_median ], " -> ", int(1000 * np.mean(geo_dist_median)) / 1000., " degrees")
+    print("Type Loss     : ", [epoch_loss_a/total_step, epoch_loss_e/total_step, epoch_loss_t/total_step], " -> ", (epoch_loss_a + epoch_loss_e + epoch_loss_t ) / total_step)
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
     logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_mean",   np.mean(geo_dist_median),step=step)
     logger.add_scalar_value("(" + args.dataset + ") Median Geodsic Error/" + datasplit + "_bus",    geo_dist_median[0],step=step)
@@ -389,7 +389,7 @@ if __name__ == '__main__':
         if not os.path.exists(args.experiment_path):
             os.makedirs(args.experiment_path)
 
-        print "Experiment path is : ", args.experiment_path
+        print("Experiment path is : ", args.experiment_path)
         print(args)
 
     # Define Logger

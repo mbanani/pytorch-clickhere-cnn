@@ -65,4 +65,4 @@ def calc_viewloss_vec(size, sigma):
     return band, prob
 
 if __name__ == '__main__':
-    print "Nothing to run"
+    print("Nothing to run")

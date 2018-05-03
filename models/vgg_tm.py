@@ -16,19 +16,19 @@ class vgg_tm(nn.Module):
         # Copy over weights
         state_dict = np.load(weights_path).item()
 
-        for key in state_dict.keys():
+        for key in list(state_dict.keys()):
             state_dict[key]['weight'] = torch.from_numpy(state_dict[key]['weight'])
             state_dict[key]['bias']   = torch.from_numpy(state_dict[key]['bias'])
 
         VGG.features[00].weight.data.copy_(state_dict['conv1_1']['weight'])
         VGG.features[00].bias.data.copy_(state_dict['conv1_1']['bias'])
-        VGG.features[02].weight.data.copy_(state_dict['conv1_2']['weight'])
-        VGG.features[02].bias.data.copy_(state_dict['conv1_2']['bias'])
+        VGG.features[0o2].weight.data.copy_(state_dict['conv1_2']['weight'])
+        VGG.features[0o2].bias.data.copy_(state_dict['conv1_2']['bias'])
 
-        VGG.features[05].weight.data.copy_(state_dict['conv2_1']['weight'])
-        VGG.features[05].bias.data.copy_(state_dict['conv2_1']['bias'])
-        VGG.features[07].weight.data.copy_(state_dict['conv2_2']['weight'])
-        VGG.features[07].bias.data.copy_(state_dict['conv2_2']['bias'])
+        VGG.features[0o5].weight.data.copy_(state_dict['conv2_1']['weight'])
+        VGG.features[0o5].bias.data.copy_(state_dict['conv2_1']['bias'])
+        VGG.features[0o7].weight.data.copy_(state_dict['conv2_2']['weight'])
+        VGG.features[0o7].bias.data.copy_(state_dict['conv2_2']['bias'])
 
         VGG.features[10].weight.data.copy_(state_dict['conv3_1']['weight'])
         VGG.features[10].bias.data.copy_(state_dict['conv3_1']['bias'])

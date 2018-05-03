@@ -8,7 +8,7 @@ import numpy            as np
 import torch.utils.data as data
 
 from PIL            import Image
-from vp_util        import label_to_probs
+from .vp_util        import label_to_probs
 from torchvision    import transforms
 import copy
 import random
@@ -28,7 +28,7 @@ class pascal3d(data.Dataset):
 
         # Load instance data from csv-file
         im_paths, bbox, obj_cls, vp_labels = self.csv_to_instances(csv_path)
-        print "csv file length: ", len(im_paths)
+        print("csv file length: ", len(im_paths))
 
         # dataset parameters
         self.root           = dataset_root
@@ -46,13 +46,13 @@ class pascal3d(data.Dataset):
         self.transform      = transform
 
         # Set weights for loss
-        class_hist          = np.histogram(obj_cls, range(0, self.num_classes+1))[0]
+        class_hist          = np.histogram(obj_cls, list(range(0, self.num_classes+1)))[0]
         mean_class_size     = np.mean(class_hist)
         self.loss_weights   = mean_class_size / class_hist
 
         # Print out dataset stats
-        print "Dataset loaded in ", time.time() - start_time, " secs."
-        print "Dataset size: ", self.num_instances
+        print("Dataset loaded in ", time.time() - start_time, " secs.")
+        print("Dataset size: ", self.num_instances)
 
     def __getitem__(self, index):
         """
@@ -150,7 +150,7 @@ class pascal3d(data.Dataset):
         self.flip       = self.flip      + [True] * self.num_instances
         assert len(self.flip) == len(self.im_paths)
         self.num_instances = len(self.im_paths)
-        print "Augmented dataset. New size: ", self.num_instances
+        print("Augmented dataset. New size: ", self.num_instances)
 
     def generate_validation(self, ratio = 0.1):
         assert ratio > (2.*self.num_classes/float(self.num_instances)) and ratio < 0.5
@@ -161,7 +161,7 @@ class pascal3d(data.Dataset):
 
         valid_size      = int(ratio * self.num_instances)
         train_size      = self.num_instances - valid_size
-        train_instances = range(0, self.num_instances)
+        train_instances = list(range(0, self.num_instances))
         valid_instances = random.sample(train_instances, valid_size)
         train_instances = [x for x in train_instances if x not in valid_instances]
 

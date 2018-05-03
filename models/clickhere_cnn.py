@@ -41,7 +41,7 @@ class clickhere_cnn(nn.Module):
 
             state_dict = npy_dict
             # Convert parameters to torch tensors
-            for key in npy_dict.keys():
+            for key in list(npy_dict.keys()):
                 state_dict[key]['weight'] = torch.from_numpy(npy_dict[key]['weight'])
                 state_dict[key]['bias']   = torch.from_numpy(npy_dict[key]['bias'])
 

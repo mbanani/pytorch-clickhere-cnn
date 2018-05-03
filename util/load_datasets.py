@@ -78,7 +78,7 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
         train_set = pascal3d_kp(csv_train, dataset_root= dataset_root, transform = train_transform, im_size = image_size)
         test_set  = pascal3d_kp(csv_test,  dataset_root= dataset_root, transform = test_transform,  im_size = image_size)
     else:
-        print "Error in load_datasets: Dataset name not defined."
+        print("Error in load_datasets: Dataset name not defined.")
 
 
     # Generate validation dataset
@@ -88,7 +88,7 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
     # Augment Training
     if flip:
         train_set.augment()
-        print "Augmented Training Dataset - size : ", train_set.num_instances
+        print("Augmented Training Dataset - size : ", train_set.num_instances)
 
     # Parallelize model
     train_sampler = None
@@ -109,7 +109,7 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
                                                 drop_last = False)
 
     if valid > 0.0:
-        print "Generated Validation Dataset - size : ", valid_set.num_instances
+        print("Generated Validation Dataset - size : ", valid_set.num_instances)
         valid_loader = torch.utils.data.DataLoader( dataset     = valid_set,
                                                     batch_size  = batch_size,
                                                     shuffle     = False,

@@ -93,7 +93,7 @@ class render4cnn(nn.Module):
             state_dict = np.load(weights_path).item()
 
             # Convert parameters to torch tensors
-            for key in state_dict.keys():
+            for key in list(state_dict.keys()):
                 state_dict[key]['weight'] = torch.from_numpy(state_dict[key]['weight'])
                 state_dict[key]['bias']   = torch.from_numpy(state_dict[key]['bias'])
 
@@ -306,7 +306,7 @@ class LambdaBase(nn.Sequential):
 
     def forward_prepare(self, input):
         output = []
-        for module in self._modules.values():
+        for module in list(self._modules.values()):
             output.append(module(input))
         return output if output else input
 
