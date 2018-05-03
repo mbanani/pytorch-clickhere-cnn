@@ -32,7 +32,7 @@ def save_checkpoint(model, optimizer, curr_epoch, curr_step, args, curr_loss, cu
 def to_var(x, volatile=False):
     if torch.cuda.is_available():
         x = x.cuda()
-    return torch.autograd.Variable(x, volatile=volatile)
+    return torch.autograd.Variable(x)
 
 def accuracy(output, target, topk=(1,)):
     """ From The PyTorch ImageNet example """
