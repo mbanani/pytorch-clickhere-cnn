@@ -1,25 +1,6 @@
 # pytorch-clickhere-cnn
 
 
-<!-- ## To Do -->
-
-<!-- - [x] Convert all links to relative paths!
-- [x] Include corrected links to weights! (check!)
-- [x] Get RenderForCNN and ClickHere Running (without regards to accuracy)
-- [x] Fix Loss Function to match what was in the r4cnn paper (ignore what their code actually did for now -- avoid normalization)
-- [x] Test training code with updated loss function -->
-<!-- - [ ] Get RenderForCNN weights in .npy (and remove lua version from all code) -- cleanup -->
-<!-- - [x] Test suspected modification to map generation (flipping X axis) -> did not work! -->
-<!-- - [ ] Update README to reflect current content -->
-<!-- - [ ] Normalize Class Naming methodology (Capital vs normal .. ) -->
-<!-- - [ ] Try to resolve dependence on util .. be more systematic about my imports! -->
-<!-- - [x] Test model save and resume -->
-<!-- - [x] Test Tensorflow logging -->
-
-<!-- - [ ] Train models from scratch!
-- [ ] Fix parallelization
-- [ ] Dataset wrapper for Synthetic dataset -->
-
 ## Introduction
 
 This is a [PyTorch](http://pytorch.org) implementation of [Clickhere CNN](https://github.com/rszeto/click-here-cnn)
@@ -31,13 +12,23 @@ This implementation also includes an implementation of the Geometric Structure A
 
 If you have any questions, please email me at mbanani@umich.edu.
 
-
 ## Getting Started
 
 Add the repository to your python path:
 
         export PYTHONPATH=$PYTHONPATH:$(pwd)
 
+
+Please be aware that I make use of the following packages:
+- Python 3.6 
+- cuda 9.0 and cudnn 9.0
+- PyTorch 1.0
+- Torch Vision 0.2.1
+- TensorboardX 1.6
+- tqdm 4.30
+- scipy 
+- pandas 0.24
+- IPython 7.2.0
 
 ### Generating the data
 Download the [Pascal 3D+ dataset](http://cvgl.stanford.edu/projects/pascal3d.html) (Release 1.1).
@@ -51,12 +42,13 @@ Please note that this will generate the csv files for 4 datasets: Pascal 3D+ (fu
 ### Pre-trained Model Weights
 
 We have converted the RenderForCNN and Clickhere model weights from the respective caffe models.
-The converted models can be downloaded here
+The converted models are available here
 ([Render For CNN weights](http://www-personal.umich.edu/~mbanani/clickhere_weights/render4cnn.pth),
-[Clickhere CNN weights](http://www-personal.umich.edu/~mbanani/clickhere_weights/ch_cnn.npy)).
+[Clickhere CNN
+weights](http://www-personal.umich.edu/~mbanani/clickhere_weights/ch_cnn.npy)), and could
+be downloaded by running the script in `model_weights/get_weights.sh` 
 The converted models achieve comparable performance to the Caffe for the Render For CNN model,
 however, there is a larger error observed for Clickhere CNN.
-<!-- We are currently training the models using PyTorch and will upload the new models soon. -->
 
 ### Running Inference
 
@@ -129,7 +121,6 @@ those weights. As reported below, fine-tuning just the attention model achieves 
 | Click-Here CNN FT             | 92.97 | 89.84 | 81.25  | 88.02 |
 | Click-Here CNN FT-Attention   | 94.48 | 90.77 | 84.91  | 90.05 |
 | Click-Here CNN (reported)     | 96.8  | 90.2  | 85.2   | 90.7  |
-<!-- | Render For CNN FT (reported)  | 90.6  | 82.4  | 84.1   | 85.7  | -->
 
 
 #### Median Error
@@ -154,6 +145,10 @@ This is an implementation of [Clickhere CNN](https://github.come/rszeto/click-he
 
 ## Acknowledgements
 
-We would like to thank Ryan Szeto, Hao Su, and Charles R. Qi for providing their code, and for their assistance with questions regarding reimplementing their work. We would also like to acknowledge [Kenta Iwasaki](https://discuss.pytorch.org/u/dranithix/summary) for his advice with loss function implementation, [Pete Tae Hoon Kim](https://discuss.pytorch.org/u/thnkim/summary) for his implementation of SpatialCrossMap LRN , and [Qi Fan](https://github.com/fanq15) for releasing [caffe_to_torch_to_pytorch](https://github.com/fanq15/caffe_to_torch_to_pytorch).
+We would like to thank Ryan Szeto, Hao Su, and Charles R. Qi for providing their code, and
+for their assistance with questions regarding reimplementing their work. We would also
+like to acknowledge [Kenta Iwasaki](https://discuss.pytorch.org/u/dranithix/summary) for
+his advice with loss function implementation and [Qi Fan](https://github.com/fanq15) for releasing
+[caffe_to_torch_to_pytorch](https://github.com/fanq15/caffe_to_torch_to_pytorch).
 
 This work has been partially supported by DARPA W32P4Q-15-C-0070 (subcontract from SoarTech) and funds from the University of Michigan Mobility Transformation Center.
