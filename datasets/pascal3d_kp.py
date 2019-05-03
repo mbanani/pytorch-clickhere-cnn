@@ -8,7 +8,7 @@ import os
 import numpy    as np
 
 from PIL            import Image
-from vp_util        import label_to_probs
+from .vp_util        import label_to_probs
 from torchvision    import transforms
 from IPython        import embed
 
@@ -48,7 +48,7 @@ class pascal3d_kp(torch.utils.data.Dataset):
         self.transform      = transform
 
         # Set weights for loss
-        class_hist          = np.histogram(obj_cls, range(0, self.num_classes+1))[0]
+        class_hist          = np.histogram(obj_cls, list(range(0, self.num_classes+1)))[0]
         mean_class_size     = np.mean(class_hist)
         self.loss_weights   = mean_class_size / class_hist
 
@@ -56,11 +56,11 @@ class pascal3d_kp(torch.utils.data.Dataset):
             self.augment()
 
         # Print out dataset stats
-        print "================================"
-        print "Pascal3D (w/ Keypoints) Stats: "
-        print "CSV file length  : ", len(im_paths)
-        print "Dataset size     : ", self.num_instances
-        print "Loading time (s) : ", time.time() - start_time
+        print("================================")
+        print("Pascal3D (w/ Keypoints) Stats: ")
+        print("CSV file length  : ", len(im_paths))
+        print("Dataset size     : ", self.num_instances)
+        print("Loading time (s) : ", time.time() - start_time)
 
 
     """
@@ -241,11 +241,11 @@ class pascal3d_kp(torch.utils.data.Dataset):
 
         all_images      = list(set(self.im_paths))
         valid_size      = int(ratio * len(all_images))
-        valid_image_i   = random.sample( range(0, len(all_images)), valid_size)
+        valid_image_i   = random.sample( list(range(0, len(all_images))), valid_size)
         set_valid_im_i  = set([all_images[i] for i in valid_image_i])
 
 
-        train_instances = range(0, self.num_instances)
+        train_instances = list(range(0, self.num_instances))
         valid_instances = [x for x in train_instances if self.im_paths[x] in set_valid_im_i]
         set_valid = set(valid_instances)
         train_instances = [x for x in train_instances if x not in set_valid]

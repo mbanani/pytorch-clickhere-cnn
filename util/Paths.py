@@ -1,5 +1,3 @@
-tensorboard_logdir = '/z/home/mbanani/tensorboard_logs'
-
 import os
 
 pascal3d_root           = '/z/home/mbanani/datasets/pascal3d'

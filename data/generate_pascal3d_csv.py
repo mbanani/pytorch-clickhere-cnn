@@ -92,7 +92,7 @@ def create_pascal_image_kp_csvs(vehicles = False):
 
     if not (os.path.exists('trainImgIds.txt') and os.path.exists('valImgIds.txt')):
         matlab_cmd = 'addpath(\'%s\'); getPascalTrainVal' % BASE_DIR
-        print 'Generating MATLAB command: %s' % (matlab_cmd)
+        print('Generating MATLAB command: %s' % (matlab_cmd))
         os.system('matlab -nodisplay -r "try %s; catch; end; quit;"' % matlab_cmd)
         # os.system('matlab -nodisplay -r "%s; quit;"' % matlab_cmd)
         # Get training and test image IDs
@@ -152,7 +152,7 @@ def create_pascal_image_kp_csvs(vehicles = False):
     info_file_test.write(INFO_FILE_HEADER)
 
     for synset, class_name in synset_name_pairs:
-        print "Generating data for %s " % (class_name)
+        print("Generating data for %s " % (class_name))
         all_zeros = 0
         counter = 0
         counter_kp = 0
@@ -188,7 +188,7 @@ def create_pascal_image_kp_csvs(vehicles = False):
                         try:
                             assert set(KEYPOINT_TYPES[class_name]) == set(keypoints.keys())
                         except:
-                            print "Assertion failed for keypoint types"
+                            print("Assertion failed for keypoint types")
                             embed()
 
                         viewpoint = obj['viewpoint']
@@ -216,14 +216,14 @@ def create_pascal_image_kp_csvs(vehicles = False):
                                         elif object_class == 2:
                                             final_label = ( 8, azimuth, elevation, tilt)
                                         else:
-                                            print "Error: Object classes do not match expected values!"
+                                            print("Error: Object classes do not match expected values!")
 
                                     keypoint_str = keypointInfo2Str(rel_image_path, bbox, keypoint_loc_full, keypoint_class, final_label)
                                     if anno_file_set == 'train':
                                         info_file_train.write(keypoint_str)
                                     else:
                                         info_file_test.write(keypoint_str)
-        print "%s : %d images %d image-kp pairs, %d ommited " % (class_name, counter, counter_kp, all_zeros)
+        print("%s : %d images %d image-kp pairs, %d ommited " % (class_name, counter, counter_kp, all_zeros))
 
     info_file_train.close()
     info_file_test.close()
@@ -239,7 +239,7 @@ def create_pascal_image_csvs(easy = False):
 
     if not (os.path.exists('trainImgIds.txt') and os.path.exists('valImgIds.txt')):
         matlab_cmd = 'addpath(\'%s\'); getPascalTrainVal' % BASE_DIR
-        print 'Generating MATLAB command: %s' % (matlab_cmd)
+        print('Generating MATLAB command: %s' % (matlab_cmd))
         os.system('matlab -nodisplay -r "try %s; catch; end; quit;"' % matlab_cmd)
         # os.system('matlab -nodisplay -r "%s; quit;"' % matlab_cmd)
         # Get training and test image IDs
@@ -266,7 +266,7 @@ def create_pascal_image_csvs(easy = False):
     info_file_test.write(INFO_FILE_HEADER)
 
     for synset, class_name in synset_name_pairs:
-        print "Generating data for %s " % (class_name)
+        print("Generating data for %s " % (class_name))
         all_zeros = 0
         hard_images = 0
         counter = 0
@@ -313,7 +313,7 @@ def create_pascal_image_csvs(easy = False):
                                 info_file_train.write(viewpoint_str)
                             else:
                                 info_file_test.write(viewpoint_str)
-        print "%s : %d images, ommitted: all_zeros - %d, difficult - %d  " % (class_name, counter, all_zeros,hard_images)
+        print("%s : %d images, ommitted: all_zeros - %d, difficult - %d  " % (class_name, counter, all_zeros,hard_images))
 
     info_file_train.close()
     info_file_test.close()
