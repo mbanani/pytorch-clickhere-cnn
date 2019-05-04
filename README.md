@@ -57,6 +57,7 @@ you can run inference on the Pascal 3D+ dataset by running one of the following 
 
 To be updated soon! 
 
+<!--
 # The original Render For CNN paper reported the results on the 'easy' subset of Pascal3D, which removes any truncated and occluded images from the datasets. While Click-Here CNN reports results on an augmented version of the dataset where multiple instances may belong to the same object in the image as each image-keypoint pair corresponds to an instance. Below are the results Obtained from each of the runs above.
 # 
 # ### Render For CNN paper results:
@@ -129,6 +130,7 @@ To be updated soon!
 # <!-- | Render For CNN FT (reported)  | 2.93  | 5.63  | 11.7   | 6.74  | -->
 # 
 # (Note: Fine-tuned weights will be uploaded soon)
+-->
 
 ### Training the model
 
