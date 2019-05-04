@@ -41,7 +41,8 @@ class render4cnn(nn.Module):
         self.elev     = nn.Linear(4096, 12 * 360)
         self.tilt     = nn.Linear(4096, 12 * 360)
         
-        self._initialize_weights(weights_path)        
+        if weights_path is not None:
+            self._initialize_weights(weights_path)        
 
     # weight initialization from torchvision/models/vgg.py
     def _initialize_weights(self, weights_path):

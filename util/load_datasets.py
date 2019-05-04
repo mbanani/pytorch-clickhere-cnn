@@ -3,16 +3,15 @@ import torch
 import numpy                    as np
 import torchvision.transforms   as transforms
 from datasets                   import pascal3d, pascal3d_kp
-import torch.utils.data.distributed
 
 from IPython import embed
-
+from .Paths import * 
 
 root_dir     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-dataset_root = '/z/home/mbanani/datasets/pascal3d'
+dataset_root = pascal3d_root 
 
 
-def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, flip = False, valid = 0.0, parallel = False):
+def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12):
 
     image_size = 227
     train_transform   = transforms.Compose([transforms.ToTensor(),
@@ -81,76 +80,19 @@ def get_data_loaders(dataset, batch_size, num_workers, model, num_classes = 12, 
         print("Error in load_datasets: Dataset name not defined.")
 
 
-    # Generate validation dataset
-    if valid > 0.0:
-        valid_set   = train_set.generate_validation(valid)
-
-    # Augment Training
-    if flip:
-        train_set.augment()
-        print("Augmented Training Dataset - size : ", train_set.num_instances)
-
-    # Parallelize model
-    train_sampler = None
-    # if parallel:
-    #     train_sampler = torch.utils.data.distributed.DistributedSampler(train_set)
 
     # Generate data loaders
-    train_loader = torch.utils.data.DataLoader( dataset     =train_set,
-                                                batch_size  =batch_size,
-                                                shuffle     = (train_sampler is None),
-                                                sampler     = train_sampler,
+    train_loader = torch.utils.data.DataLoader( dataset = train_set,
+                                                batch_size =batch_size,
+                                                shuffle = True ,
                                                 num_workers =num_workers,
                                                 drop_last   = True)
 
     test_loader  = torch.utils.data.DataLoader( dataset=test_set,
                                                 batch_size=batch_size,
+                                                shuffle = False,
                                                 num_workers=num_workers,
                                                 drop_last = False)
 
-    if valid > 0.0:
-        print("Generated Validation Dataset - size : ", valid_set.num_instances)
-        valid_loader = torch.utils.data.DataLoader( dataset     = valid_set,
-                                                    batch_size  = batch_size,
-                                                    shuffle     = False,
-                                                    pin_memory  = True,
-                                                    num_workers = num_workers,
-                                                    drop_last = False)
-    else:
-        valid_loader = None
+    return train_loader, test_loader
 
-    return train_loader, valid_loader, test_loader
-
-# def get_data_path(machine, dataset):
-#     if machine == 'focus':
-#         if dataset == 'syn':
-#             return get_data_path('z', dataset)
-#         elif dataset == 'pascal':
-#             return get_data_path('z', dataset)
-#         else:
-#             print "Error: Dataset argument not recognized. Set to either pascal or syn."
-#             exit()
-#     elif machine in ['lgn7', 'lgn6','lgn5', 'lgn4']:
-#         if dataset == 'syn':
-#             return '/data/mbanani/datasets/kp_render_synthetic/'
-#         elif dataset == 'pascal':
-#             return '/data/mbanani/datasets/pascal3d/'
-#         else:
-#             print "Error: Dataset argument not recognized. Set to either pascal or syn."
-#             exit()
-#     elif machine in ['lgn3', 'lgn2']:
-#         if dataset == 'syn':
-#             return '/scratch/mbanani/datasets/kp_render_synthetic/'
-#         elif dataset == 'pascal':
-#             return '/scratch/mbanani/datasets/pascal3d/'
-#         else:
-#             print "Error: Dataset argument not recognized. Set to either pascal or syn."
-#             exit()
-#     else:
-#         if dataset == 'syn':
-#             return '/z/home/mbanani/click-here-cnn/data/syn_images_cropped_bkg_overlaid'
-#         elif dataset == 'pascal':
-#             return '/z/home/mbanani/datasets/pascal3d'
-#         else:
-#             print "Error: Dataset argument not recognized. Set to either pascal or syn."
-#             exit()

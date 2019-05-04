@@ -40,7 +40,6 @@ class pascal3d_kp(torch.utils.data.Dataset):
         self.kp_cls         = kp_cls
         self.obj_cls        = obj_cls
         self.vp_labels      = vp_labels
-        self.flip           = [False] * len(im_paths)
         self.img_size       = im_size
         self.map_size       = map_size
         self.num_classes    = num_classes
@@ -51,9 +50,6 @@ class pascal3d_kp(torch.utils.data.Dataset):
         class_hist          = np.histogram(obj_cls, list(range(0, self.num_classes+1)))[0]
         mean_class_size     = np.mean(class_hist)
         self.loss_weights   = mean_class_size / class_hist
-
-        if flip == True:
-            self.augment()
 
         # Print out dataset stats
         print("================================")
@@ -84,14 +80,12 @@ class pascal3d_kp(torch.utils.data.Dataset):
         obj_cls = self.obj_cls[index]
 
         view    = self.vp_labels[index]
-        flip    = self.flip[index]
 
         # Transform labels
-        embed()
         azim, elev, tilt = (view + 360.) % 360.
 
         # Load and transform image
-        img, kp_loc = self.loader(im_path, bbox, flip, kp_loc)
+        img, kp_loc = self.loader(im_path, bbox, kp_loc)
         img = self.transform(img)
 
         # Generate keypoint map image, and kp class vector
@@ -122,7 +116,7 @@ class pascal3d_kp(torch.utils.data.Dataset):
             flip        boolean for flipping image horizontally
             kp_loc      2-element tuple (x_loc, y_loc)
     """
-    def pil_loader(self, path, bbox, flip, kp_loc):
+    def pil_loader(self, path, bbox, kp_loc):
         # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
         with open(path, 'rb') as f:
             with Image.open(f) as img:
@@ -139,14 +133,6 @@ class pascal3d_kp(torch.utils.data.Dataset):
 
                 img = img.crop(box=bbox)
                 img = img.resize( (self.img_size, self.img_size), Image.LANCZOS)
-
-                # TODO resizing as an experiment
-                # img = img.transpose(Image.FLIP_LEFT_RIGHT)
-
-                # flip image and keypoint if needed
-                if flip:
-                    img = img.transpose(Image.FLIP_LEFT_RIGHT)
-                    kp_loc[0] = 1.0 - kp_loc[0]
 
                 return img, kp_loc
 
@@ -172,24 +158,10 @@ class pascal3d_kp(torch.utils.data.Dataset):
         kp_loc      = data_split[2].tolist()
         kp_class    = np.squeeze(data_split[3]).tolist()
         obj_class   = np.squeeze(data_split[4]).tolist()
-        viewpoints  = data_split[5].tolist()
+        viewpoints  = np.array(data_split[5].tolist())
 
         return image_paths, bboxes, kp_loc, kp_class, obj_class, viewpoints
 
-
-    """
-        Augment dataset -- currently just duplicate it with a flipped version of each instance
-    """
-    def augment(self):
-        self.im_paths   = self.im_paths  + self.im_paths
-        self.bbox       = self.bbox      + self.bbox
-        self.kp_loc     = self.kp_loc    + self.kp_loc
-        self.kp_cls     = self.kp_cls    + self.kp_cls
-        self.obj_cls    = self.obj_cls   + self.obj_cls
-        self.vp_labels  = self.vp_labels + self.vp_labels
-        self.flip       = self.flip      + [True] * self.num_instances
-        assert len(self.flip) == len(self.im_paths)
-        self.num_instances = len(self.im_paths)
 
     """
         Generate Chbyshev-based map given a keypoint location
@@ -214,48 +186,3 @@ class pascal3d_kp(torch.utils.data.Dataset):
 
         return kp_map
 
-
-    """
-        Generate a validation set and augment current instance to become (training - validation)
-    """
-    def generate_validation(self, ratio = 0.1):
-        assert ratio > (2.*self.num_classes/float(self.num_instances)) and ratio < 0.5
-
-        random.seed(a = 223 )
-
-        valid_class     = copy.deepcopy(self)
-
-        all_images      = list(set(self.im_paths))
-        valid_size      = int(ratio * len(all_images))
-        valid_image_i   = random.sample( list(range(0, len(all_images))), valid_size)
-        set_valid_im_i  = set([all_images[i] for i in valid_image_i])
-
-
-        train_instances = list(range(0, self.num_instances))
-        valid_instances = [x for x in train_instances if self.im_paths[x] in set_valid_im_i]
-        set_valid = set(valid_instances)
-        train_instances = [x for x in train_instances if x not in set_valid]
-        set_train = set(train_instances)
-
-        train_size = len(train_instances)
-        valid_size = len(valid_instances)
-
-        valid_class.im_paths        = [ self.im_paths[i]    for i in sorted(set_valid) ]
-        valid_class.bbox            = [ self.bbox[i]        for i in sorted(set_valid) ]
-        valid_class.kp_loc          = [ self.kp_loc[i]      for i in sorted(set_valid) ]
-        valid_class.kp_cls          = [ self.kp_cls[i]      for i in sorted(set_valid) ]
-        valid_class.obj_cls         = [ self.obj_cls[i]     for i in sorted(set_valid) ]
-        valid_class.vp_labels       = [ self.vp_labels[i]   for i in sorted(set_valid) ]
-        valid_class.flip            = [ self.flip[i]        for i in sorted(set_valid) ]
-        valid_class.num_instances   = valid_size
-
-        self.im_paths               = [ self.im_paths[i]    for i in sorted(set_train) ]
-        self.bbox                   = [ self.bbox[i]        for i in sorted(set_train) ]
-        self.kp_loc                 = [ self.kp_loc[i]      for i in sorted(set_train) ]
-        self.kp_cls                 = [ self.kp_cls[i]      for i in sorted(set_train) ]
-        self.obj_cls                = [ self.obj_cls[i]     for i in sorted(set_train) ]
-        self.vp_labels              = [ self.vp_labels[i]   for i in sorted(set_train) ]
-        self.flip                   = [ self.flip[i]        for i in sorted(set_train) ]
-        self.num_instances       = train_size
-
-        return valid_class
