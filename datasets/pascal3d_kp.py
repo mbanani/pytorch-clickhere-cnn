@@ -83,26 +83,12 @@ class pascal3d_kp(torch.utils.data.Dataset):
         kp_cls  = self.kp_cls[index]
         obj_cls = self.obj_cls[index]
 
-        if self.num_classes == 3:
-            if self.obj_cls[index] == 4:
-                obj_cls = 0
-            elif self.obj_cls[index] == 5:
-                obj_cls = 1
-            elif self.obj_cls[index] == 8:
-                obj_cls = 2
-            else:
-                exit()
-
-
         view    = self.vp_labels[index]
         flip    = self.flip[index]
 
         # Transform labels
-        azim, elev, tilt = label_to_probs(  view,
-                                            obj_cls,
-                                            flip,
-                                            num_classes = self.num_classes)
-
+        embed()
+        azim, elev, tilt = (view + 360.) % 360.
 
         # Load and transform image
         img, kp_loc = self.loader(im_path, bbox, flip, kp_loc)

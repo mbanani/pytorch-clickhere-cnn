@@ -9,11 +9,11 @@ from IPython import embed
 
 import torch
 
-from util                       import ViewpointLoss, Paths
+from util                       import SoftmaxVPLoss, Paths
 from tensorboardX               import SummaryWriter
-from util                       import get_data_loaders, kp_dict #, vp_dict
+from util                       import get_data_loaders, kp_dict 
 from models                     import clickhere_cnn, render4cnn
-from util.torch_utils           import to_var, save_checkpoint
+from util.torch_utils           import save_checkpoint
 from torch.optim.lr_scheduler   import MultiStepLR
 
 def main(args):
@@ -26,36 +26,29 @@ def main(args):
                                                     num_workers = args.num_workers,
                                                     model       = args.model,
                                                     flip        = args.flip,
-                                                    num_classes = args.num_classes,
-                                                    valid       = 0.0,
-                                                    parallel    = (args.world_size > 1))
-
+                                                    valid       = 0.0,)
     print("#############  Initiate Model     ##############")
     if args.model == 'render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(num_classes = args.num_classes)
+        model = render4cnn()
         args.no_keypoint = True
     elif args.model == 'clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = clickhere_cnn(render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights), num_classes = args.num_classes)
+        model = clickhere_cnn(render4cnn(weights_path = Paths.render4cnn_weights))
         args.no_keypoint = False
     elif args.model == 'pretrained_clickhere':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = clickhere_cnn(render4cnn(), weights_path = Paths.clickhere_weights, num_classes = args.num_classes)
+        model = clickhere_cnn(render4cnn(), weights_path = Paths.clickhere_weights)
         args.no_keypoint = False
     elif args.model == 'pretrained_render':
         assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = 'lua', weights_path = Paths.render4cnn_weights, num_classes = args.num_classes)
-        args.no_keypoint = True
-    elif args.model == 'pretrained_FTrender':
-        assert Paths.render4cnn_weights != None, "Error: Set render4cnn weights path in util/Paths.py."
-        model = render4cnn(weights = 'npy', weights_path = Paths.ft_render4cnn_weights, num_classes = args.num_classes)
+        model = render4cnn(weights_path = Paths.render4cnn_weights)
         args.no_keypoint = True
     else:
         assert False, "Error: unknown model choice."
 
     # Loss functions
-    criterion = ViewpointLoss(num_classes = args.num_classes, weights = None) # train_loader.dataset.loss_weights)
+    criterion = SoftmaxVPLoss() 
 
     # Parameters to train
     if args.just_attention and (not args.no_keypoint):
@@ -88,26 +81,12 @@ def main(args):
         state_dict      = checkpoint['state_dict']
 
         print("Pretrained Model Val Accuracy is %f " % (args.best_acc))
-        # optimizer.load_state_dict(checkpoint['optimizer'])
-        # from collections import OrderedDict
-        # new_state_dict = OrderedDict()
-        # for k, v in state_dict.items():
-        #     name = k[7:] # remove `module.`
-        #     new_state_dict[name] = v
-        # load params
         model.load_state_dict(state_dict)
     else:
         start_epoch     = 0
         start_step      = 0
 
-    if args.world_size > 1:
-        print("Parallelizing Model")
-        if torch.cuda.is_available():
-            model = torch.nn.DataParallel(model, device_ids = list(range(0, args.world_size))).cuda()
-    elif torch.cuda.is_available():
-        # Train on GPU if available
-        model.cuda()
-
+    model.cuda()
 
     print("Time to initialize take: ", time.time() - initialization_time)
     print("#############  Start Training     ##############")
@@ -142,7 +121,7 @@ def main(args):
 
         if args.evaluate_only:
             exit()
-        #
+        
         if epoch % args.save_epoch == 0 and epoch > 0:
 
             args = save_checkpoint(  model      = model,
@@ -191,15 +170,11 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
         training_time = time.time()
 
         # Set mini-batch dataset
-        images      = to_var(images, volatile=False)
-        azim_label  = to_var(azim_label)
-        elev_label  = to_var(elev_label)
-        tilt_label  = to_var(tilt_label)
-        obj_class   = to_var(obj_class)
-
-        if (not args.no_keypoint):
-            kp_map      = to_var(kp_map, volatile=False)
-            kp_class    = to_var(kp_class, volatile=False)
+        images      = images.cuda()
+        azim_label  = azim_label.cuda()
+        elev_label  = elev_label.cuda()
+        tilt_label  = tilt_label.cuda()
+        obj_class   = obj_class.cuda()
 
         # Forward, Backward and Optimize
         model.zero_grad()
@@ -207,6 +182,8 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
         if args.no_keypoint:
             azim, elev, tilt = model(images)
         else:
+            kp_map      = kp_map.cuda()
+            kp_class    = kp_class.cuda()
             azim, elev, tilt = model(images, kp_map, kp_class)
 
         loss_a = criterion(azim, azim_label, obj_class)
@@ -215,16 +192,16 @@ def train_step(model, train_loader, criterion, optimizer, epoch, step, valid_loa
 
         loss = loss_a + loss_e + loss_t
 
-        loss_sum += loss.data[0]
+        loss_sum += loss.item()
 
         loss.backward()
         optimizer.step()
 
         # Log losses
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_azim",  loss_a.data[0] , step=step + i)
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_elev",  loss_e.data[0] , step=step + i)
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_tilt",  loss_t.data[0] , step=step + i)
-        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_sum", loss.data[0] , step=step + i)
+        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_azim",  loss_a.item() , step=step + i)
+        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_elev",  loss_e.item() , step=step + i)
+        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_tilt",  loss_t.item() , step=step + i)
+        logger.add_scalar_value("(" + args.dataset + ") Viewpoint Loss/train_sum",     loss.item() , step=step + i)
 
         processing_time += time.time() - training_time
 
@@ -275,39 +252,36 @@ def eval_step( model, data_loader,  criterion, step, datasplit, with_dropout = F
     epoch_loss_e    = 0.
     epoch_loss_t    = 0.
     epoch_loss      = 0.
-    results_dict    = kp_dict(args.num_classes)
+    results_dict    = kp_dict()
 
     for i, (images, azim_label, elev_label, tilt_label, obj_class, kp_map, kp_class, key_uid) in enumerate(data_loader):
 
         if i % args.log_rate == 0:
             print("Evaluation of %s [%d/%d] Time Elapsed: %f " % (datasplit, i, total_step, time.time() - start_time))
 
-        images = to_var(images, volatile=True)
-        azim_label = to_var(azim_label, volatile=True)
-        elev_label = to_var(elev_label, volatile=True)
-        tilt_label = to_var(tilt_label, volatile=True)
-
+        # Set mini-batch dataset
+        images      = images.cuda()
+        azim_label  = azim_label.cuda()
+        elev_label  = elev_label.cuda()
+        tilt_label  = tilt_label.cuda()
+        obj_class   = obj_class.cuda()
 
         if args.no_keypoint:
-            azim, elev, tilt = model(images)
+            azim, elev, tilt = model(images, obj_class)
         else:
-            kp_map      = to_var(kp_map, volatile=False)
-            kp_class    = to_var(kp_class, volatile=False)
-            azim, elev, tilt = model(images, kp_map, kp_class)
+            kp_map      = kp_map.cuda()
+            kp_class    = kp_class.cuda()
+            azim, elev, tilt = model(images, kp_map, kp_class, obj_class)
 
         # embed()
-        object_class  = to_var(obj_class)
-        epoch_loss_a += criterion(azim, azim_label, object_class).data[0]
-        epoch_loss_e += criterion(elev, elev_label, object_class).data[0]
-        epoch_loss_t += criterion(tilt, tilt_label, object_class).data[0]
+        epoch_loss_a += criterion(azim, azim_label).item()
+        epoch_loss_e += criterion(elev, elev_label).item()
+        epoch_loss_t += criterion(tilt, tilt_label).item()
 
         results_dict.update_dict( key_uid,
                             [azim.data.cpu().numpy(), elev.data.cpu().numpy(), tilt.data.cpu().numpy()],
                             [azim_label.data.cpu().numpy(), elev_label.data.cpu().numpy(), tilt_label.data.cpu().numpy()])
 
-        # results_dict.update_dict( object_class.data.cpu().numpy(),
-        #                     [azim.data.cpu().numpy(), elev.data.cpu().numpy(), tilt.data.cpu().numpy()],
-        #                     [azim_label.data.cpu().numpy(), elev_label.data.cpu().numpy(), tilt_label.data.cpu().numpy()])
 
     type_accuracy, type_total, type_geo_dist = results_dict.metrics()
 
@@ -367,9 +341,7 @@ if __name__ == '__main__':
     parser.add_argument('--evaluate_train',  action="store_true",default=False)
     parser.add_argument('--flip',            action="store_true",default=False)
     parser.add_argument('--just_attention',  action="store_true",default=False)
-    parser.add_argument('--num_classes',     type=int, default=3)
     parser.add_argument('--resume',          type=str, default=None)
-    parser.add_argument('--world_size',      type=int, default=1)
     parser.add_argument('--main',            action="store_true",default=False)
 
 
@@ -395,6 +367,6 @@ if __name__ == '__main__':
 
     # Define Logger
     log_name    = args.full_experiment_name
-    logger      = SummaryWritter(log_dir = os.path.join(Paths.tensorboard_logdir, log_name))
+    logger      = SummaryWriter(log_dir = args.experiment_path) 
 
     main(args)

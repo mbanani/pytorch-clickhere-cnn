@@ -67,13 +67,9 @@ class kp_dict(object):
             end_index   = self.class_ranges[obj_class + 1]
 
 
-            pred_probs = (  predictions[0][i, start_index:end_index],
-                            predictions[1][i, start_index:end_index],
-                            predictions[2][i, start_index:end_index])
+            pred_probs = (  predictions[0][i], predictions[1][i], predictions[2][i])
 
-            label_probs = ( labels[0][i, start_index:end_index],
-                            labels[1][i, start_index:end_index],
-                            labels[2][i, start_index:end_index])
+            label_probs = ( labels[0][i], labels[1][i], labels[2][i])
 
 
             if image in list(self.keypoint_dict.keys()):
@@ -84,9 +80,7 @@ class kp_dict(object):
 
     def calculate_geo_performance(self):
         for image in list(self.keypoint_dict.keys()):
-            curr_label = [  np.argmax(self.keypoint_dict[image]['label'][0]),
-                            np.argmax(self.keypoint_dict[image]['label'][1]),
-                            np.argmax(self.keypoint_dict[image]['label'][2])]
+            curr_label = self.keypoint_dict[image]['label']
             self.keypoint_dict[image]['geo_dist'] = dict()
             self.keypoint_dict[image]['correct'] = dict()
             for kp in list(self.keypoint_dict[image].keys()):

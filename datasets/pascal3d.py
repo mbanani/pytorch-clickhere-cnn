@@ -74,10 +74,7 @@ class pascal3d(data.Dataset):
         flip    = self.flip[index]
 
         # Transform labels
-        azim, elev, tilt = label_to_probs(  view,
-                                            obj_cls,
-                                            flip,
-                                            num_classes = self.num_classes)
+        azim, elev, tilt = (view + 360.) % 360.
 
         # Load and transform image
         img = self.loader(im_path, bbox = bbox, flip = flip)
@@ -138,7 +135,7 @@ class pascal3d(data.Dataset):
         image_paths = np.squeeze(data_split[0]).tolist()
         bboxes      = data_split[1].tolist()
         obj_class   = np.squeeze(data_split[2]).tolist()
-        viewpoints  = data_split[3].tolist()
+        viewpoints  = np.array(data_split[3].tolist())
 
         return image_paths, bboxes, obj_class, viewpoints
 
