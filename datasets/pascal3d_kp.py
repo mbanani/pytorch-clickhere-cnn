@@ -46,11 +46,6 @@ class pascal3d_kp(torch.utils.data.Dataset):
         self.num_instances  = len(self.im_paths)
         self.transform      = transform
 
-        # Set weights for loss
-        class_hist          = np.histogram(obj_cls, list(range(0, self.num_classes+1)))[0]
-        mean_class_size     = np.mean(class_hist)
-        self.loss_weights   = mean_class_size / class_hist
-
         # Print out dataset stats
         print("================================")
         print("Pascal3D (w/ Keypoints) Stats: ")

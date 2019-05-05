@@ -166,18 +166,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # logging parameters
-    parser.add_argument('--eval_epoch',      type=int , default=1)
+    parser.add_argument('--eval_epoch',      type=int , default=5)
     parser.add_argument('--log_rate',        type=int, default=10)
     parser.add_argument('--num_workers',     type=int, default=7)
 
     # training parameters
     parser.add_argument('--num_epochs',      type=int, default=100)
-    parser.add_argument('--batch_size',      type=int, default=256)
-    parser.add_argument('--lr',              type=float, default=0.01)
+    parser.add_argument('--batch_size',      type=int, default=64)
+    parser.add_argument('--lr',              type=float, default=3e-4)
     parser.add_argument('--optimizer',       type=str,default='sgd')
 
     # experiment details
-    parser.add_argument('--dataset',         type=str, default='pascalKP')
+    parser.add_argument('--dataset',         type=str, default='pascal')
     parser.add_argument('--model',           type=str, default='pretrained_clickhere')
     parser.add_argument('--experiment_name', type=str, default= 'Test')
     parser.add_argument('--just_attention',  action="store_true",default=False)
